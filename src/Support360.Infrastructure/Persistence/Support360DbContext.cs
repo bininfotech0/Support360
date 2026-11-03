@@ -32,6 +32,7 @@ public sealed class Support360DbContext : DbContext, ISupport360DbContext
     public DbSet<IncidentAlert> IncidentAlerts => Set<IncidentAlert>();
     public DbSet<ChangeRequest> ChangeRequests => Set<ChangeRequest>();
     public DbSet<ChangeApproval> ChangeApprovals => Set<ChangeApproval>();
+    public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>();
     public DbSet<DeploymentPackage> DeploymentPackages => Set<DeploymentPackage>();
     public DbSet<DeploymentRequest> DeploymentRequests => Set<DeploymentRequest>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
@@ -278,6 +279,22 @@ public sealed class Support360DbContext : DbContext, ISupport360DbContext
             e.Property(x => x.Comment).HasMaxLength(2000);
             e.HasIndex(x => new { x.TenantId, x.ChangeRequestId, x.ApproverSubject }).IsUnique();
             e.HasOne(x => x.ChangeRequest).WithMany(x => x.Approvals).HasForeignKey(x => x.ChangeRequestId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<ServiceRequest>(e =>
+        {
+            e.ToTable("ServiceRequests");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Number).HasMaxLength(40).IsRequired();
+            e.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(8000).IsRequired();
+            e.Property(x => x.Category).HasMaxLength(100).IsRequired();
+            e.Property(x => x.RequestedBySubject).HasMaxLength(255).IsRequired();
+            e.Property(x => x.RequestedByDisplay).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
+            e.HasIndex(x => new { x.TenantId, x.Number }).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.Status, x.OpenedAt });
             e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
         });
 

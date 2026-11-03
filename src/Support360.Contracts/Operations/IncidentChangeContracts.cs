@@ -63,3 +63,25 @@ public sealed record ChangeRequestDto(
 
 public sealed record ChangeApprovalPolicyDto(int RequiredApprovals, bool RequireSeparationOfDuties);
 public sealed record UpdateChangeApprovalPolicyRequest(int RequiredApprovals, bool RequireSeparationOfDuties);
+
+public sealed record CreateServiceRequest(
+    string Title,
+    string Description,
+    string Category);
+
+public sealed record TransitionServiceRequest(string Status, Guid? AssignedToUserId);
+
+public sealed record ServiceRequestDto(
+    Guid Id,
+    string Number,
+    string Title,
+    string Description,
+    string Category,
+    string Status,
+    Guid? RequestedByUserId,
+    string RequestedByDisplay,
+    Guid? AssignedToUserId,
+    DateTimeOffset OpenedAt,
+    DateTimeOffset? AcknowledgedAt,
+    DateTimeOffset? ResolvedAt,
+    DateTimeOffset? ClosedAt);

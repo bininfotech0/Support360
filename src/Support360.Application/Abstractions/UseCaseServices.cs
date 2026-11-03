@@ -94,6 +94,8 @@ public interface IDeploymentService
     Task<IReadOnlyList<DeploymentRequestDto>> ListAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<DeploymentRequestDto?> GetAsync(Guid tenantId, Guid deploymentId, CancellationToken cancellationToken);
     Task<DeploymentRequestDto> CreateAsync(RequestActor actor, CreateDeploymentRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<DeploymentRequestDto>> PendingDeploymentsForAgentAsync(Guid agentId, CancellationToken cancellationToken);
+    Task UpdateDeploymentResultAsync(Guid tenantId, Guid deploymentId, string status, string? detail, CancellationToken cancellationToken);
 }
 
 public interface IIncidentChangeService
@@ -107,6 +109,13 @@ public interface IIncidentChangeService
     Task<ChangeRequestDto?> CancelChangeRequestAsync(RequestActor actor, Guid changeRequestId, CancellationToken cancellationToken);
     Task<ChangeApprovalPolicyDto> GetPolicyAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<ChangeApprovalPolicyDto> UpdatePolicyAsync(RequestActor actor, UpdateChangeApprovalPolicyRequest request, CancellationToken cancellationToken);
+}
+
+public interface IServiceRequestService
+{
+    Task<IReadOnlyList<ServiceRequestDto>> ListServiceRequestsAsync(Guid tenantId, string? status, CancellationToken cancellationToken);
+    Task<ServiceRequestDto> CreateServiceRequestAsync(RequestActor actor, CreateServiceRequest request, CancellationToken cancellationToken);
+    Task<ServiceRequestDto?> TransitionServiceRequestAsync(RequestActor actor, Guid serviceRequestId, TransitionServiceRequest request, CancellationToken cancellationToken);
 }
 
 public interface IDashboardService

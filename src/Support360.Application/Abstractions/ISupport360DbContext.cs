@@ -23,6 +23,7 @@ public interface ISupport360DbContext
     DbSet<IncidentAlert> IncidentAlerts { get; }
     DbSet<ChangeRequest> ChangeRequests { get; }
     DbSet<ChangeApproval> ChangeApprovals { get; }
+    DbSet<ServiceRequest> ServiceRequests { get; }
     DbSet<DeploymentPackage> DeploymentPackages { get; }
     DbSet<DeploymentRequest> DeploymentRequests { get; }
     DbSet<AuditEvent> AuditEvents { get; }

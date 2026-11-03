@@ -53,6 +53,9 @@ public sealed class CreateDeploymentRequestValidator : AbstractValidator<CreateD
         RuleFor(x => x.TargetAgentId).NotEmpty();
         RuleFor(x => x.DeploymentPackageId).NotEmpty();
         RuleFor(x => x.ChangeRequestId).NotEmpty();
+        RuleFor(x => x.GitRepoURL).MaximumLength(2048);
+        RuleFor(x => x.GitBranch).MaximumLength(255);
+        RuleFor(x => x.TargetPath).MaximumLength(4000);
     }
 }
 
@@ -288,6 +291,22 @@ public sealed class DecideChangeRequestValidator : AbstractValidator<DecideChang
 public sealed class UpdateChangeApprovalPolicyRequestValidator : AbstractValidator<UpdateChangeApprovalPolicyRequest>
 {
     public UpdateChangeApprovalPolicyRequestValidator() => RuleFor(x => x.RequiredApprovals).InclusiveBetween(1, 5);
+}
+
+public sealed class CreateServiceRequestValidator : AbstractValidator<CreateServiceRequest>
+{
+    public CreateServiceRequestValidator()
+    {
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Description).NotEmpty().MaximumLength(8000);
+        RuleFor(x => x.Category).NotEmpty().MaximumLength(100);
+    }
+}
+
+public sealed class TransitionServiceRequestValidator : AbstractValidator<TransitionServiceRequest>
+{
+    public TransitionServiceRequestValidator() =>
+        RuleFor(x => x.Status).Must(v => Enum.TryParse<ServiceRequestStatus>(v, true, out var value) && Enum.IsDefined(value));
 }
 
 public sealed class CreateAlertRuleRequestValidator : AbstractValidator<CreateAlertRuleRequest>

@@ -64,6 +64,7 @@ public static class DependencyInjection
         services.AddScoped<IDeploymentPackageService, DeploymentPackageService>();
         services.AddScoped<IDeploymentService, DeploymentService>();
         services.AddScoped<IIncidentChangeService, IncidentChangeService>();
+        services.AddScoped<IServiceRequestService, ServiceRequestService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IAlertEvaluationService, AlertEvaluationService>();
         services.AddScoped<IAgentLivenessService, AgentLivenessService>();

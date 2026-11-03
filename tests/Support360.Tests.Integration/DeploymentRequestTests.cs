@@ -45,7 +45,7 @@ public sealed class DeploymentRequestTests : IClassFixture<Support360ApiFactory>
         changeResponse.EnsureSuccessStatusCode();
         var change = (await changeResponse.Content.ReadFromJsonAsync<ChangeRequestDto>())!;
 
-        var requestResponse = await admin.PostAsJsonAsync("/api/deployments", new CreateDeploymentRequest(agent.AgentId, package.Id, change.Id));
+        var requestResponse = await admin.PostAsJsonAsync("/api/deployments", new CreateDeploymentRequest(agent.AgentId, package.Id, change.Id, null, null, null));
         Assert.True(requestResponse.StatusCode == HttpStatusCode.Created,
             $"Expected deployment request creation, received {(int)requestResponse.StatusCode}: {await requestResponse.Content.ReadAsStringAsync()}");
         var deployment = (await requestResponse.Content.ReadFromJsonAsync<DeploymentRequestDto>())!;
@@ -56,7 +56,7 @@ public sealed class DeploymentRequestTests : IClassFixture<Support360ApiFactory>
         Assert.Equal("test", deployment.Environment);
         Assert.Equal(0, deployment.ReceivedApprovals);
 
-        var duplicate = await admin.PostAsJsonAsync("/api/deployments", new CreateDeploymentRequest(agent.AgentId, package.Id, change.Id));
+        var duplicate = await admin.PostAsJsonAsync("/api/deployments", new CreateDeploymentRequest(agent.AgentId, package.Id, change.Id, null, null, null));
         Assert.Equal(HttpStatusCode.Conflict, duplicate.StatusCode);
 
         var approver = await CreateApproverAsync(adminLogin.User.TenantId);
@@ -73,7 +73,7 @@ public sealed class DeploymentRequestTests : IClassFixture<Support360ApiFactory>
         Assert.Contains(list!, x => x.Id == deployment.Id && x.PackageSha256 == package.Sha256);
 
         var otherTenantChangeId = Guid.NewGuid();
-        var foreignChange = await admin.PostAsJsonAsync("/api/deployments", new CreateDeploymentRequest(agent.AgentId, package.Id, otherTenantChangeId));
+        var foreignChange = await admin.PostAsJsonAsync("/api/deployments", new CreateDeploymentRequest(agent.AgentId, package.Id, otherTenantChangeId, null, null, null));
         Assert.Equal(HttpStatusCode.NotFound, foreignChange.StatusCode);
     }
 

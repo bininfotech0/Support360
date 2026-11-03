@@ -89,6 +89,16 @@ func (c *Client) ApplicationCheckResults(ctx context.Context, key string, batch 
 	return result, err
 }
 
+func (c *Client) PendingDeployments(ctx context.Context, key string) ([]protocol.DeploymentRequest, error) {
+	var result []protocol.DeploymentRequest
+	err := c.request(ctx, http.MethodGet, "/api/agent/v1/deployments/pending", key, nil, &result, true)
+	return result, err
+}
+
+func (c *Client) ReportDeploymentResult(ctx context.Context, key string, result protocol.DeploymentResult) error {
+	return c.request(ctx, http.MethodPost, "/api/agent/v1/deployments/result", key, result, nil, true)
+}
+
 func (c *Client) request(ctx context.Context, method, path, key string, input, output any, retries bool) error {
 	var body []byte
 	if input != nil {

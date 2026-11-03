@@ -165,10 +165,12 @@ func Run(ctx context.Context, client *Client, identity protocol.Identity, queueP
 	if err := runChecks(); err != nil {
 		return err
 	}
-	telemetryTicker := time.NewTicker(time.Duration(telemetryInterval) * time.Second)
+		telemetryTicker := time.NewTicker(time.Duration(telemetryInterval) * time.Second)
 	heartbeatTicker := time.NewTicker(time.Duration(heartbeatInterval) * time.Second)
+	deployTicker := time.NewTicker(time.Minute)
 	defer telemetryTicker.Stop()
 	defer heartbeatTicker.Stop()
+	defer deployTicker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
@@ -191,8 +193,34 @@ func Run(ctx context.Context, client *Client, identity protocol.Identity, queueP
 			if err := heartbeat(); err != nil {
 				return err
 			}
+		case <-deployTicker.C:
+			if identity.DeploymentOptIn {
+				if err := pollDeployments(ctx, client, identity); err != nil {
+					slog.Warn("deployment polling failed", "error", err)
+				}
+			}
 		}
 	}
+}
+
+func pollDeployments(ctx context.Context, client *Client, identity protocol.Identity) error {
+	deploys, err := client.PendingDeployments(ctx, identity.APIKey)
+	if unauthorized(err) {
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	for _, deploy := range deploys {
+		result := runDeployment(ctx, deploy)
+		if err := client.ReportDeploymentResult(ctx, identity.APIKey, result); err != nil {
+			if unauthorized(err) {
+				return err
+			}
+			slog.Warn("deployment result upload failed", "deploymentId", deploy.ID, "error", err)
+		}
+	}
+	return nil
 }
 
 func unauthorized(err error) bool {

@@ -82,3 +82,20 @@ type ApplicationCheckResultsResponse struct {
 	Duplicates int `json:"duplicates"`
 	Rejected   int `json:"rejected"`
 }
+
+type DeploymentRequest struct {
+	ID             string `json:"id"`
+	PackageName    string `json:"packageName"`
+	PackageVersion string `json:"packageVersion"`
+	PackageSha256  string `json:"packageSha256"`
+	GitRepoURL     string `json:"gitRepoUrl"`
+	GitBranch      string `json:"gitBranch"`
+	TargetPath     string `json:"targetPath"`
+	Environment    string `json:"environment"`
+}
+
+type DeploymentResult struct {
+	DeploymentID string `json:"deploymentId"`
+	Status       string `json:"status"` // succeeded, failed
+	Detail       string `json:"detail,omitempty"`
+}

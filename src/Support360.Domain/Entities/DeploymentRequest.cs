@@ -13,9 +13,13 @@ public sealed class DeploymentRequest : Entity, ITenantOwned
     public Guid ChangeRequestId { get; set; }
     public ChangeRequest ChangeRequest { get; set; } = null!;
     public required string Environment { get; set; }
+    public string? GitRepoURL { get; set; }
+    public string? GitBranch { get; set; }
+    public string? TargetPath { get; set; }
     public DeploymentRequestStatus Status { get; set; }
     public Guid? RequestedByUserId { get; set; }
     public required string RequestedBySubject { get; set; }
     public required string RequestedByDisplay { get; set; }
     public DateTimeOffset RequestedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
 }

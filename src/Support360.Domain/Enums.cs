@@ -104,3 +104,5 @@ public enum AuditActorType
     Agent = 1,
     System = 2
 }
+
+public enum ServiceRequestStatus { New = 0, Acknowledged = 1, InProgress = 2, Resolved = 3, Closed = 4 }
