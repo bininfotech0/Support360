@@ -1,0 +1,26 @@
+# Build output
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.vite/
+**/coverage/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+**/appsettings.Local.json
+
+# Local databases and logs
+*.db
+*.db-shm
+*.db-wal
+*.log
+
+# IDE and OS files
+.vs/
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini

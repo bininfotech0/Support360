@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-support360}
+      POSTGRES_USER: ${POSTGRES_USER:-support360}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - support360-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Support360.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      Database__Provider: Postgres
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-support360};Username=${POSTGRES_USER:-support360};Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      Auth__Mode: Local
+      Auth__LocalEnabled: "true"
+      Auth__SigningKey: ${AUTH_SIGNING_KEY:?Set AUTH_SIGNING_KEY in .env}
+      Seed__Enabled: "true"
+      Seed__AdminEmail: ${SEED_ADMIN_EMAIL:-admin@support360.local}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD in .env}
+      Cors__AllowedOrigins__0: http://localhost:5173
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: web
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: agent
+      dockerfile: Dockerfile
+    profiles: ["agent"]
+    command:
+      - run
+      - --server
+      - http://api:8080
+      - --identity
+      - /var/lib/support360/identity.json
+      - --queue
+      - /var/lib/support360/queue.json
+      - --allow-http
+    volumes:
+      - support360-agent-state:/var/lib/support360
+    depends_on:
+      api:
+        condition: service_started
+    restart: on-failure:3
+
+volumes:
+  support360-postgres:
+  support360-agent-state:
