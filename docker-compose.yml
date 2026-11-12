@@ -51,8 +51,8 @@ services:
 
   agent:
     build:
-      context: agent
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: src/Support360.Agent/Dockerfile
     profiles: ["agent"]
     command:
       - run

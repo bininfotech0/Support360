@@ -7,6 +7,7 @@ import { useAuth } from '../auth/authContext'
 import {
   EmptyState,
   ErrorBanner,
+  LiveStatus,
   Loading,
   PageHeader,
   PageSection,
@@ -115,10 +116,7 @@ export function AgentDetailPage() {
         description={`${agent.platform} · ${agent.osVersion ?? 'OS unknown'} · ${agent.architecture ?? 'arch unknown'} · agent v${agent.version ?? '—'}`}
         actions={
           <>
-            <span className={`live-status ${connected ? 'is-live' : ''}`}>
-              <span className="live-dot" aria-hidden="true" />
-              {connected ? 'Live' : 'Reconnecting'}
-            </span>
+            <LiveStatus connected={connected} />
             <StatusBadge value={agent.status} />
           </>
         }

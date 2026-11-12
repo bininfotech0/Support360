@@ -75,6 +75,7 @@ public sealed class ApiExceptionMiddleware
         }
 
         context.Response.Clear();
+        SecurityHeaders.Apply(context.Response.Headers);
         context.Response.StatusCode = status;
         context.Response.ContentType = "application/problem+json";
 

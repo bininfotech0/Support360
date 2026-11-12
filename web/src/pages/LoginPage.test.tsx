@@ -70,6 +70,35 @@ describe('LoginPage', () => {
     expect(getSession()).toBeNull()
   })
 
+  it('toggles password visibility without losing the value', () => {
+    renderLogin()
+
+    const password = screen.getByLabelText('Password')
+    fireEvent.change(password, { target: { value: 'secret' } })
+    expect(password).toHaveAttribute('type', 'password')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show password' }))
+    expect(password).toHaveAttribute('type', 'text')
+    expect(password).toHaveValue('secret')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide password' }))
+    expect(password).toHaveAttribute('type', 'password')
+  })
+
+  it('clears a previous error when the visitor edits the form', async () => {
+    vi.spyOn(api, 'login').mockRejectedValue(new Error('Invalid email or password.'))
+    renderLogin()
+
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'admin@test' } })
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'wrong' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password.')
+
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'wrong-again' } })
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('redirects an existing session away from the login page', async () => {
     setSession(loginResponse)
     renderLogin('/agents')

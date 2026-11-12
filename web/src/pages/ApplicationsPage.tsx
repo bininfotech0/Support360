@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import { canOperate } from '../api/session'
 import type { ApplicationCheck, ApplicationCheckHistoryItem } from '../api/types'
@@ -6,6 +6,12 @@ import { useAuth } from '../auth/authContext'
 import { EmptyState, ErrorBanner, Loading, PageHeader, PageSection, StatusBadge } from '../components/ui'
 import { useLoad } from '../hooks/useLoad'
 import { formatDate } from '../utils'
+
+const healthFilters = ['all', 'Healthy', 'Unhealthy', 'Unknown', 'Unsupported', 'Present', 'Disabled']
+
+function healthValue(check: ApplicationCheck) {
+  return check.enabled ? (check.lastStatus ?? 'Unknown') : 'Disabled'
+}
 
 export function ApplicationsPage() {
   const { user } = useAuth()
@@ -19,7 +25,17 @@ export function ApplicationsPage() {
   const [editing, setEditing] = useState<ApplicationCheck | null>(null)
   const [history, setHistory] = useState<{ id: string; items: ApplicationCheckHistoryItem[] } | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [search, setSearch] = useState('')
+  const [health, setHealth] = useState('all')
   const refresh = () => { checks.refresh(); agents.refresh() }
+  const visibleChecks = useMemo(() => {
+    const needle = search.trim().toLowerCase()
+    return (checks.data ?? []).filter(check => {
+      const matchesHealth = health === 'all' || healthValue(check) === health
+      const matchesSearch = !needle || [check.name, check.hostname, check.target].some(value => value.toLowerCase().includes(needle))
+      return matchesHealth && matchesSearch
+    })
+  }, [checks.data, health, search])
 
   const create = async (event: FormEvent) => {
     event.preventDefault(); setError(null)
@@ -55,7 +71,7 @@ export function ApplicationsPage() {
   }
 
   return <>
-    <PageHeader eyebrow="Monitoring" title="Application checks" description="Configure endpoint checks and review results reported by monitored agents." actions={<button type="button" className="button button-ghost" onClick={refresh}>Refresh</button>} />
+    <PageHeader eyebrow="Monitoring" title="Application health" description="Configure endpoint checks and review application health reported by monitored agents." actions={<button type="button" className="button button-ghost" onClick={refresh}>Refresh</button>} />
     {error ? <ErrorBanner message={error} /> : null}
     {canOperate(user) && !editing ? <PageSection title="Add a check" description="HTTP checks accept an absolute HTTP or HTTPS URL. Process and service checks run on the selected agent.">
       <form className="enrollment-controls" onSubmit={create}>
@@ -77,11 +93,12 @@ export function ApplicationsPage() {
         <button type="button" className="button button-ghost" onClick={() => setEditing(null)}>Cancel</button>
       </form>
     </PageSection> : null}
-    <PageSection title="Configured checks" description={`${checks.data?.length ?? 0} checks`}>
+    <PageSection title="Configured checks" description={`${visibleChecks.length} of ${checks.data?.length ?? 0} checks.`} actions={<div className="inline-actions"><input aria-label="Search application checks" placeholder="Search name, host, target" value={search} onChange={e => setSearch(e.target.value)} /><select value={health} onChange={e => setHealth(e.target.value)} aria-label="Application health filter">{healthFilters.map(value => <option key={value} value={value}>{value === 'all' ? 'All health states' : value}</option>)}</select></div>}>
       {checks.loading && !checks.data ? <Loading label="Loading checks" /> : null}
       {checks.error ? <ErrorBanner message={checks.error} onRetry={checks.refresh} /> : null}
       {!checks.loading && checks.data?.length === 0 ? <EmptyState title="No application checks configured" detail="Create a check to start collecting application health results." /> : null}
-      {!!checks.data?.length ? <div className="table-wrap"><table><thead><tr><th>Check</th><th>Agent</th><th>Target</th><th>Status</th><th>Last checked</th><th>Actions</th></tr></thead><tbody>{checks.data.map(c => <tr key={c.id}><td>{c.name}<span className="muted block">{c.type} · every {c.intervalSeconds}s</span></td><td>{c.hostname}</td><td>{c.target}</td><td><StatusBadge value={c.enabled ? c.lastStatus : 'Disabled'} /></td><td>{formatDate(c.lastExecutedAt)}</td><td><div className="inline-actions"><button type="button" className="button button-ghost" onClick={() => showHistory(c.id)}>History</button>{canOperate(user) ? <><button type="button" className="button button-ghost" onClick={() => setEditing(c)}>Edit</button><button type="button" className="button button-ghost" onClick={() => remove(c.id)}>Delete</button></> : null}</div></td></tr>)}</tbody></table></div> : null}
+      {!checks.loading && (checks.data?.length ?? 0) > 0 && visibleChecks.length === 0 ? <EmptyState title="No matching checks" detail="Try a different search or health filter." /> : null}
+      {visibleChecks.length ? <div className="table-wrap"><table><thead><tr><th>Check</th><th>Agent</th><th>Target</th><th>Status</th><th>Last checked</th><th>Actions</th></tr></thead><tbody>{visibleChecks.map(c => <tr key={c.id}><td>{c.name}<span className="muted block">{c.type} · every {c.intervalSeconds}s</span></td><td>{c.hostname}</td><td>{c.target}</td><td><StatusBadge value={healthValue(c)} /></td><td>{formatDate(c.lastExecutedAt)}</td><td><div className="inline-actions"><button type="button" className="button button-ghost" onClick={() => showHistory(c.id)}>History</button>{canOperate(user) ? <><button type="button" className="button button-ghost" onClick={() => setEditing(c)}>Edit</button><button type="button" className="button button-ghost" onClick={() => remove(c.id)}>Delete</button></> : null}</div></td></tr>)}</tbody></table></div> : null}
     </PageSection>
     {historyLoading ? <Loading label="Loading check history" /> : null}
     {history ? <PageSection title="Check history" description="Most recent results returned by the agent.">

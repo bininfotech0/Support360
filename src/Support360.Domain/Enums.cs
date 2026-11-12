@@ -92,10 +92,24 @@ public enum ApplicationCheckStatus
     Present = 4
 }
 
-public enum IncidentSeverity { Low = 0, Medium = 1, High = 2, Critical = 3 }
-public enum IncidentStatus { New = 0, Acknowledged = 1, InProgress = 2, Resolved = 3, Closed = 4 }
-public enum ChangeRequestStatus { PendingApproval = 0, Approved = 1, Rejected = 2, Cancelled = 3 }
-public enum ChangeApprovalDecision { Approved = 0, Rejected = 1 }
+public enum TicketType { Incident = 0, ServiceRequest = 1, Problem = 2, Change = 3 }
+public enum TicketStatus
+{
+    New = 0,
+    Acknowledged = 1,
+    InProgress = 2,
+    PendingApproval = 3,
+    Approved = 4,
+    Rejected = 5,
+    Cancelled = 6,
+    Resolved = 7,
+    Closed = 8
+}
+public enum TicketPriority { Low = 0, Medium = 1, High = 2, Critical = 3 }
+public enum TicketImpact { Low = 0, Medium = 1, High = 2 }
+public enum TicketUrgency { Low = 0, Medium = 1, High = 2 }
+public enum TicketLinkType { RelatesTo = 0, CausedBy = 1, ResolvedBy = 2 }
+public enum TicketApprovalDecision { Approved = 0, Rejected = 1 }
 public enum DeploymentRequestStatus { PendingApproval = 0, Approved = 1, Rejected = 2, Cancelled = 3, Queued = 4, Executing = 5, Succeeded = 6, Failed = 7 }
 
 public enum AuditActorType
@@ -105,4 +119,8 @@ public enum AuditActorType
     System = 2
 }
 
-public enum ServiceRequestStatus { New = 0, Acknowledged = 1, InProgress = 2, Resolved = 3, Closed = 4 }
+public enum WorkDnaTargetMode { Auto = 0, Manual = 1 }
+public enum WorkDnaSeverity { Low = 0, Medium = 1, High = 2, Critical = 3 }
+public enum WorkActivityStatus { Pending = 0, Scheduled = 1, Completed = 2, Overdue = 3 }
+public enum WorkScheduleFrequency { Daily = 0, Weekly = 1, Monthly = 2 }
+public enum WorkCalendarDayType { Working = 0, Holiday = 1, Off = 2 }

@@ -41,11 +41,7 @@ public sealed class DatabaseSeeder
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(_options.AdminPassword) || _options.AdminPassword.Length < 12)
-        {
-            throw new InvalidOperationException(
-                "Seed:AdminPassword must be configured with at least 12 characters when Seed:Enabled is true.");
-        }
+        SeedPolicy.EnsureAdminPassword(_options.AdminPassword);
 
         _tenantContext.SetSystem();
 
@@ -53,11 +49,6 @@ public sealed class DatabaseSeeder
         var existingUser = await _db.Users
             .IgnoreQueryFilters()
             .AnyAsync(u => u.EmailNormalized == email, cancellationToken);
-
-        if (existingUser)
-        {
-            return false;
-        }
 
         var now = _clock.UtcNow;
         var tenant = await _db.Tenants
@@ -77,18 +68,21 @@ public sealed class DatabaseSeeder
             _db.Tenants.Add(tenant);
         }
 
-        var user = new User
+        if (!existingUser)
         {
-            TenantId = tenant.Id,
-            Email = _options.AdminEmail.Trim(),
-            EmailNormalized = email,
-            DisplayName = _options.AdminDisplayName,
-            PasswordHash = _passwordHasher.Hash(_options.AdminPassword),
-            Role = UserRole.TenantAdmin,
-            IsActive = true,
-            CreatedAt = now
-        };
-        _db.Users.Add(user);
+            var user = new User
+            {
+                TenantId = tenant.Id,
+                Email = _options.AdminEmail.Trim(),
+                EmailNormalized = email,
+                DisplayName = _options.AdminDisplayName,
+                PasswordHash = _passwordHasher.Hash(_options.AdminPassword),
+                Role = UserRole.TenantAdmin,
+                IsActive = true,
+                CreatedAt = now
+            };
+            _db.Users.Add(user);
+        }
 
         var hasRules = await _db.AlertRules
             .IgnoreQueryFilters()
@@ -123,10 +117,46 @@ public sealed class DatabaseSeeder
                 });
         }
 
+        var hasProjects = await _db.Projects
+            .IgnoreQueryFilters()
+            .AnyAsync(p => p.TenantId == tenant.Id, cancellationToken);
+
+        if (!hasProjects)
+        {
+            _db.Projects.Add(new Project
+            {
+                TenantId = tenant.Id,
+                Name = "ePortal Operations",
+                Status = "Active",
+                CreatedAt = now
+            });
+        }
+
+        var hasCategories = await _db.WorkDnaCategories
+            .IgnoreQueryFilters()
+            .AnyAsync(c => c.TenantId == tenant.Id, cancellationToken);
+
+        if (!hasCategories)
+        {
+            _db.WorkDnaCategories.AddRange(
+                new WorkDnaCategory { TenantId = tenant.Id, CategoryName = "Incident Remediations", ActivityName = "Incident Triage", CreatedAt = now },
+                new WorkDnaCategory { TenantId = tenant.Id, CategoryName = "Incident Remediations", ActivityName = "Incident Resolution", CreatedAt = now },
+                new WorkDnaCategory { TenantId = tenant.Id, CategoryName = "Change Management", ActivityName = "CAB Preparation", CreatedAt = now },
+                new WorkDnaCategory { TenantId = tenant.Id, CategoryName = "Delivery", ActivityName = "Deployment Support", CreatedAt = now },
+                new WorkDnaCategory { TenantId = tenant.Id, CategoryName = "Delivery", ActivityName = "Release Verification", CreatedAt = now },
+                new WorkDnaCategory { TenantId = tenant.Id, CategoryName = "Operations", ActivityName = "Batch Job Recovery", CreatedAt = now },
+                new WorkDnaCategory { TenantId = tenant.Id, CategoryName = "Operations", ActivityName = "Monitoring Review", CreatedAt = now },
+                new WorkDnaCategory { TenantId = tenant.Id, CategoryName = "Team", ActivityName = "Standup & Reporting", CreatedAt = now });
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
-        _logger.LogWarning(
-            "Seeded {Tenant} tenant and administrator {Email}. This seed is for development/demo use only.",
-            tenant.Name, _options.AdminEmail);
-        return true;
+        if (!existingUser)
+        {
+            _logger.LogWarning(
+                "Seeded {Tenant} tenant and administrator {Email}. This seed is for development/demo use only.",
+                tenant.Name, _options.AdminEmail);
+        }
+
+        return !existingUser;
     }
 }

@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import {
   EmptyState,
   ErrorBanner,
+  LiveStatus,
   Loading,
   PageHeader,
   PageSection,
@@ -40,10 +41,7 @@ export function DashboardPage() {
         description="Live health of your tenant fleet. Data refreshes automatically when agents report in."
         actions={
           <>
-            <span className={`live-status ${connected ? 'is-live' : ''}`}>
-              <span className="live-dot" aria-hidden="true" />
-              {connected ? 'Live' : 'Reconnecting'}
-            </span>
+            <LiveStatus connected={connected} />
             <button type="button" className="button button-ghost" onClick={overview.refresh}>
               Refresh
             </button>

@@ -1,11 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import { canApprove, canManage, canOperate } from '../api/session'
 import type { ChangeRequest } from '../api/types'
 import { useAuth } from '../auth/authContext'
+import { TicketCollaborationPanel } from '../components/TicketCollaborationPanel'
 import { EmptyState, ErrorBanner, Loading, PageHeader, PageSection, StatusBadge } from '../components/ui'
 import { useLoad } from '../hooks/useLoad'
 import { formatDate } from '../utils'
+
+const statusFilters = ['all', 'PendingApproval', 'Approved', 'Rejected', 'Cancelled']
 
 function localInput(hoursFromNow: number) {
   const date = new Date(Date.now() + hoursFromNow * 60 * 60 * 1000)
@@ -28,8 +31,14 @@ export function ChangeRequestsPage() {
   const [requiredApprovals, setRequiredApprovals] = useState<number | null>(null)
   const [separation, setSeparation] = useState<boolean | null>(null)
   const [comments, setComments] = useState<Record<string, string>>({})
+  const [status, setStatus] = useState('all')
   const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
   const refresh = () => { changes.refresh(); incidents.refresh(); policy.refresh() }
+  const visibleChanges = useMemo(
+    () => (changes.data ?? []).filter(change => status === 'all' || change.status === status),
+    [changes.data, status],
+  )
 
   const create = async (event: FormEvent) => {
     event.preventDefault(); setError(null)
@@ -92,16 +101,18 @@ export function ChangeRequestsPage() {
         <button type="submit" className="button button-primary">Submit for approval</button>
       </form>
     </PageSection> : null}
-    <PageSection title="Change register" description={`${changes.data?.length ?? 0} requests`}>
+    <PageSection title="Change register" description={`${visibleChanges.length} of ${changes.data?.length ?? 0} requests.`} actions={<select value={status} onChange={e => setStatus(e.target.value)} aria-label="Change request status filter">{statusFilters.map(value => <option key={value} value={value}>{value === 'all' ? 'All statuses' : value === 'PendingApproval' ? 'Pending approval' : value}</option>)}</select>}>
       {changes.loading && !changes.data ? <Loading label="Loading change requests" /> : null}
       {changes.error ? <ErrorBanner message={changes.error} onRetry={changes.refresh} /> : null}
       {!changes.loading && changes.data?.length === 0 ? <EmptyState title="No change requests" detail="Submitted changes appear here with their approval decisions." /> : null}
-      {!!changes.data?.length ? <div className="table-wrap"><table><thead><tr><th>Request</th><th>Window</th><th>Risk</th><th>Status</th><th>Approvals</th><th>Decision</th></tr></thead><tbody>{changes.data.map(change => {
+      {!changes.loading && (changes.data?.length ?? 0) > 0 && visibleChanges.length === 0 ? <EmptyState title="No matching change requests" detail="Try a different status filter." /> : null}
+      {visibleChanges.length ? <div className="table-wrap"><table><thead><tr><th>Request</th><th>Window</th><th>Risk</th><th>Status</th><th>Approvals</th><th>Decision</th></tr></thead><tbody>{visibleChanges.map(change => {
         const self = change.requestedByUserId === user?.id
         const mayDecide = canApprove(user) && !self && change.status === 'PendingApproval'
         const mayCancel = canOperate(user) && change.status === 'PendingApproval' && (self || canManage(user))
-        return <tr key={change.id}><td><strong>{change.number} · {change.title}</strong><span className="muted block">{change.targetEnvironment} · requested by {change.requestedByDisplay}</span><span className="muted block">{change.description}</span>{change.relatedIncidentId ? <span className="muted block">Related incident {incidents.data?.find(i => i.id === change.relatedIncidentId)?.number ?? change.relatedIncidentId}</span> : null}</td><td>{formatDate(change.plannedStartAt)}<span className="muted block">to {formatDate(change.plannedEndAt)}</span></td><td>{change.risk}</td><td><StatusBadge value={change.status} /></td><td>{change.approvals.length}/{change.requiredApprovals}<span className="muted block">{change.approvals.map(a => `${a.approverDisplay}: ${a.decision}`).join(' · ') || 'Awaiting review'}</span></td><td>{mayDecide ? <div className="status-stack"><input aria-label={`Decision comment for ${change.number}`} placeholder="Decision comment" value={comments[change.id] ?? ''} onChange={e => setComments(current => ({ ...current, [change.id]: e.target.value }))} /><div className="inline-actions"><button type="button" className="button button-primary" onClick={() => decide(change, 'Approved')}>Approve</button><button type="button" className="button button-ghost" onClick={() => decide(change, 'Rejected')}>Reject</button></div></div> : null}{mayCancel ? <button type="button" className="button button-ghost" onClick={() => cancel(change)}>Cancel request</button> : null}{!mayDecide && !mayCancel ? '—' : null}</td></tr>
+        return <tr key={change.id}><td><strong>{change.number} · {change.title}</strong> <button type="button" className="button button-ghost" onClick={() => setSelected(change.id)}>Details</button><span className="muted block">{change.targetEnvironment} · requested by {change.requestedByDisplay}</span><span className="muted block">{change.description}</span>{change.relatedIncidentId ? <span className="muted block">Related incident {incidents.data?.find(i => i.id === change.relatedIncidentId)?.number ?? change.relatedIncidentId}</span> : null}</td><td>{formatDate(change.plannedStartAt)}<span className="muted block">to {formatDate(change.plannedEndAt)}</span></td><td>{change.risk}</td><td><StatusBadge value={change.status} /></td><td>{change.approvals.length}/{change.requiredApprovals}<span className="muted block">{change.approvals.map(a => `${a.approverDisplay}: ${a.decision}`).join(' · ') || 'Awaiting review'}</span></td><td>{mayDecide ? <div className="status-stack"><input aria-label={`Decision comment for ${change.number}`} placeholder="Decision comment" value={comments[change.id] ?? ''} onChange={e => setComments(current => ({ ...current, [change.id]: e.target.value }))} /><div className="inline-actions"><button type="button" className="button button-primary" onClick={() => decide(change, 'Approved')}>Approve</button><button type="button" className="button button-ghost" onClick={() => decide(change, 'Rejected')}>Reject</button></div></div> : null}{mayCancel ? <button type="button" className="button button-ghost" onClick={() => cancel(change)}>Cancel request</button> : null}{!mayDecide && !mayCancel ? '—' : null}</td></tr>
       })}</tbody></table></div> : null}
     </PageSection>
+    {selected ? <TicketCollaborationPanel ticketId={selected} onClose={() => setSelected(null)} onChanged={changes.refresh} /> : null}
   </>
 }

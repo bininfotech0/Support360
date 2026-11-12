@@ -3,7 +3,7 @@ namespace Support360.Contracts.Deployments;
 public sealed record CreateDeploymentRequest(
     Guid TargetAgentId,
     Guid DeploymentPackageId,
-    Guid ChangeRequestId,
+    Guid ChangeTicketId,
     string? GitRepoURL,
     string? GitBranch,
     string? TargetPath);
@@ -17,8 +17,8 @@ public sealed record DeploymentRequestDto(
     string PackageVersion,
     string PackageSha256,
     long PackageSizeBytes,
-    Guid ChangeRequestId,
-    string ChangeRequestNumber,
+    Guid ChangeTicketId,
+    string ChangeTicketNumber,
     string Environment,
     string? GitRepoURL,
     string? GitBranch,
@@ -29,3 +29,22 @@ public sealed record DeploymentRequestDto(
     Guid? RequestedByUserId,
     string RequestedByDisplay,
     DateTimeOffset RequestedAt);
+
+public sealed record DeploymentManifestDto(
+    Guid DeploymentId,
+    Guid AgentId,
+    Guid TenantId,
+    string PackageName,
+    string PackageVersion,
+    string PackageSha256,
+    string? GitRepoURL,
+    string? GitBranch,
+    string? TargetPath,
+    string Nonce,
+    DateTimeOffset IssuedAt,
+    DateTimeOffset ExpiresAt,
+    string SignatureAlgorithm,
+    string KeyId,
+    string Signature);
+
+public sealed record DeploymentArtifactDto(byte[] Content, string FileName, string Sha256);

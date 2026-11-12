@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Support360.Agent/Support360.Agent.csproj" />
     <Project Path="src/Support360.Api/Support360.Api.csproj" />
     <Project Path="src/Support360.Application/Support360.Application.csproj" />
     <Project Path="src/Support360.Contracts/Support360.Contracts.csproj" />
@@ -8,6 +9,7 @@
     <Project Path="src/Support360.Workers/Support360.Workers.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Support360.Tests.Agent/Support360.Tests.Agent.csproj" />
     <Project Path="tests/Support360.Tests.Integration/Support360.Tests.Integration.csproj" />
     <Project Path="tests/Support360.Tests.Unit/Support360.Tests.Unit.csproj" />
   </Folder>

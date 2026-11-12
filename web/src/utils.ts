@@ -82,18 +82,35 @@ export function statusTone(value: string | null | undefined): 'ok' | 'warn' | 'b
     case 'resolved':
     case 'running':
     case 'completed':
+    case 'succeeded':
+    case 'approved':
+    case 'present':
+    case 'usable':
       return 'ok'
     case 'degraded':
     case 'warning':
+    case 'medium':
     case 'unknown':
     case 'pending':
+    case 'pendingapproval':
     case 'acknowledged':
+    case 'inprogress':
+    case 'new':
+    case 'queued':
+    case 'executing':
+    case 'unsupported':
+    case 'stopped':
+    case 'expired':
+    case 'consumed':
       return 'warn'
     case 'offline':
     case 'revoked':
     case 'critical':
+    case 'high':
     case 'failed':
     case 'error':
+    case 'unhealthy':
+    case 'rejected':
       return 'bad'
     default:
       return 'neutral'

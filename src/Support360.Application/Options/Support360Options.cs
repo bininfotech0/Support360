@@ -32,7 +32,9 @@ public sealed class DeploymentOptions
     public const string SectionName = "Deployment";
 
     public bool ExecutionEnabled { get; set; }
+    public string? ManifestSigningPrivateKey { get; set; }
     public string? ManifestSigningPublicKey { get; set; }
+    public string ManifestSigningKeyId { get; set; } = "support360-deployment-v1";
     public int ManifestLifetimeMinutes { get; set; } = 30;
 }
 
@@ -62,6 +64,7 @@ public sealed class SeedOptions
     public const string SectionName = "Seed";
 
     public bool Enabled { get; set; }
+    public bool AllowInProduction { get; set; }
     public string TenantName { get; set; } = "Demo Operations";
     public string TenantSlug { get; set; } = "demo";
     public string AdminEmail { get; set; } = "admin@support360.local";

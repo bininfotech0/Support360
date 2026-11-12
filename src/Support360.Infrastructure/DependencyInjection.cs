@@ -62,9 +62,10 @@ public static class DependencyInjection
         services.AddScoped<IApplicationCheckService, ApplicationCheckService>();
         services.AddScoped<IBatchJobService, BatchJobService>();
         services.AddScoped<IDeploymentPackageService, DeploymentPackageService>();
+        services.AddScoped<IDeploymentManifestService, DeploymentManifestService>();
         services.AddScoped<IDeploymentService, DeploymentService>();
-        services.AddScoped<IIncidentChangeService, IncidentChangeService>();
-        services.AddScoped<IServiceRequestService, ServiceRequestService>();
+        services.AddScoped<ITicketService, TicketService>();
+        services.AddScoped<IWorkDnaService, WorkDnaService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IAlertEvaluationService, AlertEvaluationService>();
         services.AddScoped<IAgentLivenessService, AgentLivenessService>();

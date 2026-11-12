@@ -60,6 +60,46 @@ export interface ChangeRequest {
   requestedByUserId: string | null; requestedByDisplay: string; relatedIncidentId: string | null; approvals: ChangeApproval[]
 }
 export interface ChangeApprovalPolicy { requiredApprovals: number; requireSeparationOfDuties: boolean }
+export interface ServiceRequest {
+  id: string; number: string; title: string; description: string; category: string; status: string
+  requestedByUserId: string | null; requestedByDisplay: string; assignedToUserId: string | null
+  openedAt: string; acknowledgedAt: string | null; resolvedAt: string | null; closedAt: string | null
+}
+export interface CreateServiceRequest { title: string; description: string; category: string }
+
+export interface TicketAlert { alertId: string; severity: string; status: string; message: string; triggeredAt: string }
+export interface TicketApproval { approverDisplay: string; decision: string; comment: string | null; decidedAt: string }
+export interface TicketActivity {
+  kind: string; fromStatus: string | null; toStatus: string | null; detail: string | null
+  actorDisplay: string | null; occurredAt: string
+}
+export interface TicketLink { ticketId: string; number: string; type: string; linkType: string }
+export interface TicketComment { id: string; body: string; isInternal: boolean; authorDisplay: string | null; createdAt: string }
+export interface TicketWorklog { id: string; minutes: number; note: string | null; authorDisplay: string | null; workedAt: string }
+export interface TicketWatcher { id: string; userId: string | null; display: string; createdAt: string }
+export interface TicketAttachment {
+  id: string; fileName: string; contentType: string; sizeBytes: number; sha256: string
+  uploadedByDisplay: string; uploadedAt: string
+}
+export interface Ticket {
+  id: string; number: string; type: string; title: string; description: string; category: string | null
+  status: string; priority: string; impact: string; urgency: string
+  requestedByUserId: string | null; requestedByDisplay: string | null
+  assignedToUserId: string | null; relatedBatchJobExecutionId: string | null
+  risk: string | null; targetEnvironment: string | null
+  plannedStartAt: string | null; plannedEndAt: string | null; requiredApprovals: number
+  openedAt: string; acknowledgedAt: string | null; resolvedAt: string | null; closedAt: string | null
+  alerts: TicketAlert[]; approvals: TicketApproval[]; activities: TicketActivity[]; relatedTickets: TicketLink[]
+  comments: TicketComment[]; worklogs: TicketWorklog[]; watchers: TicketWatcher[]; attachments: TicketAttachment[]
+  dueAt: string | null
+}
+export interface CreateTicket {
+  type: string; title: string; description: string; category?: string | null
+  priority?: string | null; impact?: string | null; urgency?: string | null
+  assignedToUserId?: string | null; alertIds?: string[] | null; relatedBatchJobExecutionId?: string | null
+  risk?: string | null; targetEnvironment?: string | null
+  plannedStartAt?: string | null; plannedEndAt?: string | null; relatedTicketId?: string | null
+}
 
 export interface ServiceStatus {
   name: string
@@ -211,11 +251,13 @@ export interface DeploymentPackage {
 export interface DeploymentRequest {
   id: string; targetAgentId: string; targetHostname: string; deploymentPackageId: string; packageName: string
   packageVersion: string; packageSha256: string; packageSizeBytes: number; changeRequestId: string
-  changeRequestNumber: string; environment: string; status: string; requiredApprovals: number
+  changeRequestNumber: string; environment: string; gitRepoUrl: string | null; gitBranch: string | null
+  targetPath: string | null; status: string; requiredApprovals: number
   receivedApprovals: number; requestedByUserId: string | null; requestedByDisplay: string; requestedAt: string
 }
 export interface CreateDeploymentRequest {
   targetAgentId: string; deploymentPackageId: string; changeRequestId: string
+  gitRepoUrl?: string | null; gitBranch?: string | null; targetPath?: string | null
 }
 
 export interface UsageSummary {
@@ -237,4 +279,197 @@ export interface Overview {
   recentAlerts: Alert[]
   recentEvents: AuditEvent[]
   generatedAt: string
+}
+
+export interface Project {
+  id: string
+  name: string
+  status: string
+}
+
+export interface WorkDnaCategory {
+  id: string
+  categoryName: string
+  activityName: string
+}
+
+export interface WorkDnaTeamMember {
+  id: string
+  displayName: string
+  email: string
+  role: string
+}
+
+export interface WorkDnaLookups {
+  organizationName: string
+  projects: Project[]
+  categories: WorkDnaCategory[]
+  team: WorkDnaTeamMember[]
+}
+
+export interface WorkActivity {
+  id: string
+  organization: string
+  projectId: string
+  projectName: string
+  assigneeId: string
+  assigneeName: string
+  dnaCategoryId: string
+  categoryName: string
+  activityName: string
+  title: string
+  description: string | null
+  targetMode: string
+  effortMinutes: number
+  effort: string
+  severity: string
+  startTime: string
+  endTime: string
+  ignoreOff: boolean
+  businessImpact: string | null
+  status: string
+  completedAt: string | null
+  scheduleId: string | null
+  isSuppressed: boolean
+}
+
+export interface WorkCalendarDay {
+  date: string
+  isOff: boolean
+  offLabel: string | null
+  total: number
+  completed: number
+  pending: number
+  scheduled: number
+  suppressed: number
+}
+
+export interface WorkPulsePoint {
+  date: string
+  bookedHours: number
+  capacityHours: number
+  pending: number
+}
+
+export interface WorkCapacity {
+  month: string
+  totalWorkingDays: number
+  holidayDays: number
+  leaveDays: number
+  workingCapacityHours: number
+  bookedHours: number
+  availableHours: number
+  utilizationPercent: number
+  pendingActivities: number
+  days: WorkCalendarDay[]
+  pendencyTimeline: WorkPulsePoint[]
+}
+
+export interface WorkCapacityRange {
+  from: string
+  to: string
+  months: WorkCapacity[]
+}
+
+export interface AutoCaptureWorkActivityRequest {
+  projectId: string
+  assigneeId: string
+  dnaCategoryId: string
+  title: string
+  description: string | null
+  effortMinutes: number
+  severity: string
+  businessImpact: string
+  source: string
+  sourceReference: string | null
+  startTime: string | null
+}
+
+export interface CreateWorkActivityRequest {
+  projectId: string
+  assigneeId: string
+  dnaCategoryId: string
+  title: string
+  description: string | null
+  targetMode: string
+  effortMinutes: number
+  severity: string
+  startTime: string
+  endTime: string
+  ignoreOff: boolean
+  businessImpact: string
+}
+
+export interface UpdateWorkActivityRequest extends CreateWorkActivityRequest {
+  status?: string
+}
+
+export interface WorkActivitySchedule {
+  id: string
+  projectId: string
+  projectName: string
+  assigneeId: string
+  assigneeName: string
+  dnaCategoryId: string
+  categoryName: string
+  activityName: string
+  title: string
+  description: string | null
+  targetMode: string
+  effortMinutes: number
+  effort: string
+  severity: string
+  ignoreOff: boolean
+  businessImpact: string | null
+  frequency: string
+  weekdays: string[]
+  dayOfMonth: number | null
+  startHourUtc: number
+  startDate: string
+  endDate: string
+  isActive: boolean
+}
+
+export interface CreateWorkActivityScheduleRequest {
+  projectId: string
+  assigneeId: string
+  dnaCategoryId: string
+  title: string
+  description: string | null
+  targetMode: string
+  effortMinutes: number
+  severity: string
+  ignoreOff: boolean
+  businessImpact: string
+  frequency: string
+  weekdays: string[]
+  dayOfMonth: number | null
+  startHourUtc: number
+  startDate: string
+  endDate: string
+}
+
+export interface UpdateWorkActivityScheduleRequest extends CreateWorkActivityScheduleRequest {
+  isActive: boolean
+}
+
+export interface MaterializeSchedulesResponse {
+  month: string
+  generated: number
+  skipped: number
+}
+
+export interface WorkCalendarDayEntry {
+  date: string
+  dayType: string
+  label: string | null
+}
+
+export interface WorkLeave {
+  id: string
+  userId: string
+  userDisplayName: string
+  date: string
+  hours: number
+  reason: string | null
 }

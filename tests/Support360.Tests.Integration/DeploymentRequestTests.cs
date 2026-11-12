@@ -39,11 +39,10 @@ public sealed class DeploymentRequestTests : IClassFixture<Support360ApiFactory>
         Assert.Equal(HttpStatusCode.Created, packageUpload.StatusCode);
         var package = (await packageUpload.Content.ReadFromJsonAsync<DeploymentPackageDto>())!;
         var now = DateTimeOffset.UtcNow;
-        var changeResponse = await admin.PostAsJsonAsync("/api/change-requests", new CreateChangeRequest(
-            "Deploy approved package", "Install the package using the approved deployment policy.", "Low", "test",
-            now.AddHours(1), now.AddHours(2), null));
+        var changeResponse = await admin.PostAsJsonAsync("/api/tickets", new CreateTicketRequest(
+            "Change", "Deploy approved package", "Install the package using the approved deployment policy.", null, null, null, null, null, null, null, "Low risk.", "test", now.AddHours(1), now.AddHours(2), null));
         changeResponse.EnsureSuccessStatusCode();
-        var change = (await changeResponse.Content.ReadFromJsonAsync<ChangeRequestDto>())!;
+        var change = (await changeResponse.Content.ReadFromJsonAsync<TicketDto>())!;
 
         var requestResponse = await admin.PostAsJsonAsync("/api/deployments", new CreateDeploymentRequest(agent.AgentId, package.Id, change.Id, null, null, null));
         Assert.True(requestResponse.StatusCode == HttpStatusCode.Created,
@@ -63,7 +62,7 @@ public sealed class DeploymentRequestTests : IClassFixture<Support360ApiFactory>
         using var approverClient = _factory.CreateClient();
         var approverLogin = await LoginAsync(approverClient, approver.Email, approver.Password);
         approverClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", approverLogin.AccessToken);
-        var approval = await approverClient.PostAsJsonAsync($"/api/change-requests/{change.Id}/decision", new DecideChangeRequest("Approved", "Reviewed deployment change."));
+        var approval = await approverClient.PostAsJsonAsync($"/api/tickets/{change.Id}/decision", new DecideTicketRequest("Approved", "Reviewed deployment change."));
         approval.EnsureSuccessStatusCode();
 
         var current = await admin.GetFromJsonAsync<DeploymentRequestDto>($"/api/deployments/{deployment.Id}");

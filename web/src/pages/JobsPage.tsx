@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client'
-import { EmptyState, ErrorBanner, Loading, PageHeader, PageSection, StatusBadge } from '../components/ui'
+import { EmptyState, ErrorBanner, LiveStatus, Loading, PageHeader, PageSection, StatusBadge } from '../components/ui'
 import { useAuth } from '../auth/authContext'
 import { canManage } from '../api/session'
 import { useLoad } from '../hooks/useLoad'
 import { useRealtime } from '../hooks/useRealtime'
 import { formatDate, formatDuration, relativeTime } from '../utils'
+
+const statusFilters = ['all', 'Running', 'Succeeded', 'Failed', 'Skipped', 'Unknown']
 
 export function JobsPage() {
   const { user } = useAuth()
@@ -20,6 +22,16 @@ export function JobsPage() {
   const [expectedSchedule, setExpectedSchedule] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
+  const [status, setStatus] = useState('all')
+  const visibleJobs = useMemo(() => {
+    const needle = search.trim().toLowerCase()
+    return (jobs.data ?? []).filter(job => {
+      const matchesStatus = status === 'all' || (job.lastStatus ?? 'Unknown') === status
+      const matchesSearch = !needle || [job.name, job.jobKey, job.hostname].some(value => value.toLowerCase().includes(needle))
+      return matchesStatus && matchesSearch
+    })
+  }, [jobs.data, search, status])
 
   const save = async (event: FormEvent) => {
     event.preventDefault(); setError(null)
@@ -42,14 +54,9 @@ export function JobsPage() {
     <>
       <PageHeader
         eyebrow="Automation"
-        title="Batch jobs"
-        description="Scheduled job outcomes reported by enrolled agents. No job is executed from this console."
-        actions={
-          <span className={`live-status ${connected ? 'is-live' : ''}`}>
-            <span className="live-dot" aria-hidden="true" />
-            {connected ? 'Live' : 'Reconnecting'}
-          </span>
-        }
+        title="Batch job health"
+        description="Monitor scheduled job outcomes reported by enrolled agents. No job is executed from this console."
+        actions={<LiveStatus connected={connected} />}
       />
 
       {error ? <ErrorBanner message={error} /> : null}
@@ -65,7 +72,7 @@ export function JobsPage() {
         </form>
       </PageSection> : null}
 
-      <PageSection title="Tracked jobs" description={`${jobs.data?.length ?? 0} job keys configured or reported by agents for this tenant.`}>
+      <PageSection title="Tracked jobs" description={`${visibleJobs.length} of ${jobs.data?.length ?? 0} job keys configured or reported by agents for this tenant.`} actions={<div className="inline-actions"><input aria-label="Search batch jobs" placeholder="Search name, key, host" value={search} onChange={e => setSearch(e.target.value)} /><select value={status} onChange={e => setStatus(e.target.value)} aria-label="Batch job status filter">{statusFilters.map(value => <option key={value} value={value}>{value === 'all' ? 'All statuses' : value}</option>)}</select></div>}>
         {jobs.loading && !jobs.data ? <Loading label="Loading batch jobs" /> : null}
         {jobs.error ? <ErrorBanner message={jobs.error} onRetry={jobs.refresh} /> : null}
         {!jobs.loading && (jobs.data?.length ?? 0) === 0 ? (
@@ -74,9 +81,12 @@ export function JobsPage() {
             detail="Agents post job events through the authenticated job-events endpoint."
           />
         ) : null}
+        {!jobs.loading && (jobs.data?.length ?? 0) > 0 && visibleJobs.length === 0 ? (
+          <EmptyState title="No matching batch jobs" detail="Try a different search or status filter." />
+        ) : null}
 
         <div className="stack">
-          {jobs.data?.map((job) => (
+          {visibleJobs.map((job) => (
             <article key={job.id} className="job-card">
               <div className="job-heading">
                 <div>

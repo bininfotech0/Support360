@@ -78,6 +78,43 @@ public sealed class AgentLivenessWorker : BackgroundService
     }
 }
 
+public sealed class WorkDnaScheduleWorker : BackgroundService
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<WorkDnaScheduleWorker> _logger;
+
+    public WorkDnaScheduleWorker(IServiceScopeFactory scopeFactory, ILogger<WorkDnaScheduleWorker> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken);
+        using var timer = new PeriodicTimer(TimeSpan.FromHours(6));
+        do
+        {
+            try
+            {
+                await using var scope = _scopeFactory.CreateAsyncScope();
+                var service = scope.ServiceProvider.GetRequiredService<IWorkDnaService>();
+                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                await service.MaterializeAllTenantsAsync(new DateOnly(today.Year, today.Month, 1), stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Work DNA schedule materialization worker failed");
+            }
+        }
+        while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+}
+
 public sealed class RetentionWorker : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;

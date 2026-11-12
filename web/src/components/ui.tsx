@@ -106,6 +106,15 @@ export function Sparkline({
   )
 }
 
+export function LiveStatus({ connected }: { connected: boolean }) {
+  return (
+    <span className={`live-status ${connected ? 'is-live' : ''}`} role="status" aria-live="polite">
+      <span className="live-dot" aria-hidden="true" />
+      {connected ? 'Live' : 'Reconnecting'}
+    </span>
+  )
+}
+
 export function Loading({ label = 'Loading' }: { label?: string }) {
   return (
     <div className="loading-state" role="status">

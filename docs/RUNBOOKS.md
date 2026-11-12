@@ -32,9 +32,9 @@ These steps apply to the local Docker Compose deployment. Production deployments
 5. Do not delete the agent volume during an outage; it contains the pending queue and agent identity.
 
 ## Install or remove an agent service
+- Linux: use `src/Support360.Agent/packaging/linux/install.sh` on a systemd distribution. It creates a dedicated service account, stores identity and queues with restrictive permissions, and enables `support360-agent.service`. Review the script and confirm the distribution's `systemd`, `runuser`, and `useradd` versions before deployment.
 
-- Linux: use `agent/packaging/linux/install.sh` on a systemd distribution. It creates a dedicated service account, stores identity and queues with restrictive permissions, and enables `support360-agent.service`. Review the script and confirm the distribution's `systemd`, `runuser`, and `useradd` versions before deployment.
-- Windows: run `agent/packaging/windows/install.ps1` elevated. It installs under LocalService, scopes the identity and queue directory to the service SID and Administrators, and configures restart on failure. Use `Get-Service Support360Agent` and Windows service control manager state for diagnosis; this version does not configure persistent Windows event-log forwarding.
+- Windows: run `src/Support360.Agent/packaging/windows/install.ps1` elevated. It installs under LocalService, scopes the identity and queue directory to the service SID and Administrators, and configures restart on failure. Use `Get-Service Support360Agent` and Windows service control manager state for diagnosis; this version does not configure persistent Windows event-log forwarding.
 - Uninstall scripts preserve identity and queued events by default. Use the explicit identity-removal option only when credential and queue deletion is intended. Installer scripts have syntax and compile checks only; complete a test install on the exact target OS before production use.
 
 ## Agent credential compromise
@@ -47,9 +47,17 @@ These steps apply to the local Docker Compose deployment. Production deployments
 
 ## Deployment failure or request
 
-Deployment execution is disabled by default. Package catalog and staged request APIs exist, but the agent work dispatch and deployment executor are not implemented. New enrollment tokens can carry an administrator deployment grant, and the local installer must separately opt in; both choices default off. These gates do not enable execution today. Do not run deployment commands through the agent or enable `Deployment:ExecutionEnabled`. Use the organization's existing change process for actual deployments until signed manifests, approval enforcement, allowlisted actions, replay protection, audit, and recovery tests are implemented.
+Deployment execution is disabled by default and has not been validated end to end with a live agent in this workspace. Enabling it requires `Deployment:ExecutionEnabled=true`, a configured RSA private/public key pair (`Deployment:ManifestSigningPrivateKey`, `Deployment:ManifestSigningPublicKey`, `Deployment:ManifestSigningKeyId`), an administrator deployment grant on the agent enrollment, and the local agent opt-in plus pinned public key/deployment root. Never enable it with development or shared keys.
 
-Tenant admins may stage bounded ZIP files in the package catalog, and operators may create deployment requests tied to the existing change approval workflow. Uploads are SHA-256 hashed and structurally checked, but are not cryptographically signed or deployable. The local MVP stores package bytes in PostgreSQL; review database backup and retention capacity if using the catalog. Requests are not dispatched to agents and cannot execute.
+Tenant admins may stage bounded ZIP files in the package catalog, and operators may create requests tied to the existing change approval workflow. Uploads are SHA-256 hashed and structurally checked; the signed manifest carries the digest and the agent re-checks it after download. The local MVP stores package bytes in PostgreSQL; review database backup and retention capacity if using the catalog.
+
+Failure handling:
+
+1. A manifest/result replay or a result reported without a started deployment returns HTTP 409. Check the agent logs and the deployment status before retrying; do not rotate credentials as a first response.
+2. A rejected manifest indicates a mismatched agent/tenant/deployment/package, expiry, future issue time, unsupported algorithm/key, or invalid signature. Compare the server key id and pinned public key; do not bypass verification.
+3. A digest mismatch, unsafe archive, deployment-root escape, or activation failure marks the deployment failed. The agent restores the previous target when activation fails; inspect `.support360-staging-*`/`.support360-backup-*` siblings under the target parent and preserve logs before cleanup.
+4. If signing keys are suspected compromised, disable `Deployment:ExecutionEnabled`, revoke affected agent credentials, replace the key pair and agent pinned keys, then re-enable only after re-testing. Existing manifests expire within the configured lifetime (default 30 minutes; agent maximum 2 hours).
+5. Apply `AddDeploymentManifestNonces` before enabling execution against an existing database.
 
 ## Local service recovery
 

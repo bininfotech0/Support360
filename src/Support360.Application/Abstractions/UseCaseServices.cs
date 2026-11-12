@@ -6,6 +6,7 @@ using Support360.Contracts.Telemetry;
 using Support360.Contracts.Operations;
 using Support360.Contracts.Jobs;
 using Support360.Contracts.Deployments;
+using Support360.Contracts.WorkDna;
 
 namespace Support360.Application.Abstractions;
 
@@ -95,27 +96,65 @@ public interface IDeploymentService
     Task<DeploymentRequestDto?> GetAsync(Guid tenantId, Guid deploymentId, CancellationToken cancellationToken);
     Task<DeploymentRequestDto> CreateAsync(RequestActor actor, CreateDeploymentRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<DeploymentRequestDto>> PendingDeploymentsForAgentAsync(Guid agentId, CancellationToken cancellationToken);
-    Task UpdateDeploymentResultAsync(Guid tenantId, Guid deploymentId, string status, string? detail, CancellationToken cancellationToken);
+    Task UpdateDeploymentResultAsync(Guid tenantId, Guid agentId, Guid deploymentId, string status, string? detail, CancellationToken cancellationToken);
+    Task<DeploymentManifestDto> GetManifestAsync(Guid agentId, Guid deploymentId, CancellationToken cancellationToken);
+    Task<DeploymentArtifactDto> GetArtifactAsync(Guid agentId, Guid deploymentId, CancellationToken cancellationToken);
 }
 
-public interface IIncidentChangeService
+public interface IDeploymentManifestService
 {
-    Task<IReadOnlyList<IncidentDto>> ListIncidentsAsync(Guid tenantId, string? status, CancellationToken cancellationToken);
-    Task<IncidentDto> CreateIncidentAsync(RequestActor actor, CreateIncidentRequest request, CancellationToken cancellationToken);
-    Task<IncidentDto?> TransitionIncidentAsync(RequestActor actor, Guid incidentId, TransitionIncidentRequest request, CancellationToken cancellationToken);
-    Task<IReadOnlyList<ChangeRequestDto>> ListChangeRequestsAsync(Guid tenantId, CancellationToken cancellationToken);
-    Task<ChangeRequestDto> CreateChangeRequestAsync(RequestActor actor, CreateChangeRequest request, CancellationToken cancellationToken);
-    Task<ChangeRequestDto?> DecideChangeRequestAsync(RequestActor actor, Guid changeRequestId, DecideChangeRequest request, CancellationToken cancellationToken);
-    Task<ChangeRequestDto?> CancelChangeRequestAsync(RequestActor actor, Guid changeRequestId, CancellationToken cancellationToken);
+    bool IsConfigured { get; }
+
+    DeploymentManifestDto SignManifest(Guid deploymentId, Guid agentId, Guid tenantId,
+        string packageName, string packageVersion, string packageSha256,
+        string? gitRepoURL, string? gitBranch, string targetPath,
+        string nonce, DateTimeOffset issuedAt, DateTimeOffset expiresAt);
+
+    bool VerifyManifest(DeploymentManifestDto manifest);
+}
+
+public interface ITicketService
+{
+    Task<IReadOnlyList<TicketDto>> ListAsync(Guid tenantId, string? type, string? status, string? priority, Guid? assignedToUserId, string? search, CancellationToken cancellationToken);
+    Task<TicketDto?> GetAsync(RequestActor actor, Guid ticketId, CancellationToken cancellationToken);
+    Task<TicketDto> CreateAsync(RequestActor actor, CreateTicketRequest request, CancellationToken cancellationToken);
+    Task<TicketDto?> TransitionAsync(RequestActor actor, Guid ticketId, TransitionTicketRequest request, CancellationToken cancellationToken);
+    Task<TicketDto?> DecideAsync(RequestActor actor, Guid ticketId, DecideTicketRequest request, CancellationToken cancellationToken);
+    Task<TicketDto?> CancelAsync(RequestActor actor, Guid ticketId, CancellationToken cancellationToken);
+    Task<TicketDto?> AddCommentAsync(RequestActor actor, Guid ticketId, AddTicketCommentRequest request, CancellationToken cancellationToken);
+    Task<TicketDto?> AddWorklogAsync(RequestActor actor, Guid ticketId, AddTicketWorklogRequest request, CancellationToken cancellationToken);
+    Task<TicketDto?> SetWatchingAsync(RequestActor actor, Guid ticketId, bool watch, CancellationToken cancellationToken);
+    Task<TicketDto?> SetDueDateAsync(RequestActor actor, Guid ticketId, DateTimeOffset? dueAt, CancellationToken cancellationToken);
+    Task<TicketDto?> AddAttachmentAsync(RequestActor actor, Guid ticketId, UploadTicketAttachmentRequest request, CancellationToken cancellationToken);
+    Task<TicketDto?> DeleteAttachmentAsync(RequestActor actor, Guid ticketId, Guid attachmentId, CancellationToken cancellationToken);
+    Task<TicketAttachmentContent?> GetAttachmentAsync(Guid tenantId, Guid ticketId, Guid attachmentId, CancellationToken cancellationToken);
     Task<ChangeApprovalPolicyDto> GetPolicyAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<ChangeApprovalPolicyDto> UpdatePolicyAsync(RequestActor actor, UpdateChangeApprovalPolicyRequest request, CancellationToken cancellationToken);
 }
 
-public interface IServiceRequestService
+public interface IWorkDnaService
 {
-    Task<IReadOnlyList<ServiceRequestDto>> ListServiceRequestsAsync(Guid tenantId, string? status, CancellationToken cancellationToken);
-    Task<ServiceRequestDto> CreateServiceRequestAsync(RequestActor actor, CreateServiceRequest request, CancellationToken cancellationToken);
-    Task<ServiceRequestDto?> TransitionServiceRequestAsync(RequestActor actor, Guid serviceRequestId, TransitionServiceRequest request, CancellationToken cancellationToken);
+    Task<WorkDnaLookupsDto> GetLookupsAsync(Guid tenantId, CancellationToken cancellationToken);
+    Task<ProjectDto> CreateProjectAsync(RequestActor actor, CreateProjectRequest request, CancellationToken cancellationToken);
+    Task<WorkDnaCategoryDto> CreateCategoryAsync(RequestActor actor, CreateWorkDnaCategoryRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<WorkActivityDto>> ListActivitiesAsync(Guid tenantId, string? month, Guid? assigneeId, string? status, Guid? projectId, CancellationToken cancellationToken);
+    Task<WorkActivityDto> CreateActivityAsync(RequestActor actor, CreateWorkActivityRequest request, CancellationToken cancellationToken);
+    Task<WorkActivityDto> AutoCaptureActivityAsync(RequestActor actor, AutoCaptureWorkActivityRequest request, CancellationToken cancellationToken);
+    Task<WorkActivityDto?> UpdateActivityAsync(RequestActor actor, Guid activityId, UpdateWorkActivityRequest request, CancellationToken cancellationToken);
+    Task<WorkActivityDto?> CompleteActivityAsync(RequestActor actor, Guid activityId, CancellationToken cancellationToken);
+    Task<WorkCapacityDto> GetCapacityAsync(Guid tenantId, string? month, CancellationToken cancellationToken);
+    Task<WorkCapacityRangeDto> GetCapacityRangeAsync(Guid tenantId, string? from, string? to, CancellationToken cancellationToken);
+    Task<IReadOnlyList<WorkCalendarDayDto>> GetCalendarAsync(Guid tenantId, string? month, CancellationToken cancellationToken);
+    Task<IReadOnlyList<WorkActivityScheduleDto>> ListSchedulesAsync(Guid tenantId, CancellationToken cancellationToken);
+    Task<WorkActivityScheduleDto> CreateScheduleAsync(RequestActor actor, CreateWorkActivityScheduleRequest request, CancellationToken cancellationToken);
+    Task<WorkActivityScheduleDto?> UpdateScheduleAsync(RequestActor actor, Guid scheduleId, UpdateWorkActivityScheduleRequest request, CancellationToken cancellationToken);
+    Task<MaterializeSchedulesResponse> MaterializeSchedulesAsync(RequestActor actor, string? month, Guid? scheduleId, CancellationToken cancellationToken);
+    Task<int> MaterializeAllTenantsAsync(DateOnly month, CancellationToken cancellationToken);
+    Task<IReadOnlyList<WorkCalendarDayEntryDto>> ListCalendarDaysAsync(Guid tenantId, string? month, CancellationToken cancellationToken);
+    Task<WorkCalendarDayEntryDto> SetCalendarDayAsync(RequestActor actor, SetWorkCalendarDayRequest request, CancellationToken cancellationToken);
+    Task<bool> RemoveCalendarDayAsync(RequestActor actor, DateOnly date, CancellationToken cancellationToken);
+    Task<IReadOnlyList<WorkLeaveDto>> ListLeavesAsync(Guid tenantId, string? month, CancellationToken cancellationToken);
+    Task<WorkLeaveDto> CreateLeaveAsync(RequestActor actor, CreateWorkLeaveRequest request, CancellationToken cancellationToken);
 }
 
 public interface IDashboardService

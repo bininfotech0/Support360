@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -7,6 +8,17 @@ public sealed class Support360ApiFactory : WebApplicationFactory<Program>
 {
     public const string AdminEmail = "admin@support360.local";
     public const string AdminPassword = "Integration-Test-Password-123!";
+    public const string DeploymentSigningKeyId = "integration-deployment-key";
+
+    public static string DeploymentSigningPrivateKey { get; }
+    public static string DeploymentSigningPublicKey { get; }
+
+    static Support360ApiFactory()
+    {
+        using var rsa = RSA.Create(2048);
+        DeploymentSigningPrivateKey = rsa.ExportPkcs8PrivateKeyPem();
+        DeploymentSigningPublicKey = rsa.ExportSubjectPublicKeyInfoPem();
+    }
 
     private readonly string _dbPath = Path.Combine(
         Path.GetTempPath(),
@@ -45,6 +57,11 @@ public sealed class Support360ApiFactory : WebApplicationFactory<Program>
             ["Seed:AdminPassword"] = AdminPassword,
             ["Seed:IsDemoTenant"] = "true",
             ["BackgroundWorkers:Enabled"] = "false",
+            ["Deployment:ExecutionEnabled"] = "true",
+            ["Deployment:ManifestSigningPrivateKey"] = DeploymentSigningPrivateKey,
+            ["Deployment:ManifestSigningPublicKey"] = DeploymentSigningPublicKey,
+            ["Deployment:ManifestSigningKeyId"] = DeploymentSigningKeyId,
+            ["Deployment:ManifestLifetimeMinutes"] = "5",
             ["Http:UseHttpsRedirection"] = "false",
             ["ReverseProxy:Enabled"] = "false",
             ["RateLimits:EnrollmentPermitLimit"] = "10000",

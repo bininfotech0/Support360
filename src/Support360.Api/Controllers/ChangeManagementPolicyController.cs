@@ -10,8 +10,8 @@ namespace Support360.Api.Controllers;
 [Authorize(Policy = "TenantUser")]
 public sealed class ChangeManagementPolicyController : TenantControllerBase
 {
-    private readonly IIncidentChangeService _operations;
-    public ChangeManagementPolicyController(IIncidentChangeService operations) => _operations = operations;
+    private readonly ITicketService _operations;
+    public ChangeManagementPolicyController(ITicketService operations) => _operations = operations;
 
     [HttpGet]
     public Task<ChangeApprovalPolicyDto> Get(CancellationToken cancellationToken) =>

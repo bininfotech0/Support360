@@ -8,6 +8,7 @@ using Support360.Contracts.Telemetry;
 using Support360.Contracts.Operations;
 using Support360.Contracts.Jobs;
 using Support360.Contracts.Deployments;
+using Support360.Contracts.WorkDna;
 using Support360.Domain;
 
 
@@ -52,7 +53,7 @@ public sealed class CreateDeploymentRequestValidator : AbstractValidator<CreateD
     {
         RuleFor(x => x.TargetAgentId).NotEmpty();
         RuleFor(x => x.DeploymentPackageId).NotEmpty();
-        RuleFor(x => x.ChangeRequestId).NotEmpty();
+        RuleFor(x => x.ChangeTicketId).NotEmpty();
         RuleFor(x => x.GitRepoURL).MaximumLength(2048);
         RuleFor(x => x.GitBranch).MaximumLength(255);
         RuleFor(x => x.TargetPath).MaximumLength(4000);
@@ -248,65 +249,99 @@ public sealed class ApplicationCheckResultsRequestValidator : AbstractValidator<
     }
 }
 
-public sealed class CreateIncidentRequestValidator : AbstractValidator<CreateIncidentRequest>
+public sealed class CreateTicketRequestValidator : AbstractValidator<CreateTicketRequest>
 {
-    public CreateIncidentRequestValidator()
+    public CreateTicketRequestValidator()
     {
+        RuleFor(x => x.Type)
+            .Must(v => Enum.TryParse<TicketType>(v, true, out var value) && Enum.IsDefined(value))
+            .WithMessage("Type must be Incident, ServiceRequest, Problem or Change.");
         RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Description).NotEmpty().MaximumLength(8000);
-        RuleFor(x => x.Severity).Must(v => Enum.TryParse<IncidentSeverity>(v, true, out var value) && Enum.IsDefined(value));
-        RuleFor(x => x.AlertIds).Must(ids => ids is null || ids.Count <= 50 && ids.Distinct().Count() == ids.Count);
+        RuleFor(x => x.Category).MaximumLength(100);
+        RuleFor(x => x.Priority).Must(v => v is null || (Enum.TryParse<TicketPriority>(v, true, out var value) && Enum.IsDefined(value)))
+            .WithMessage("Priority must be Low, Medium, High or Critical.");
+        RuleFor(x => x.Impact).Must(v => v is null || (Enum.TryParse<TicketImpact>(v, true, out var value) && Enum.IsDefined(value)))
+            .WithMessage("Impact must be Low, Medium or High.");
+        RuleFor(x => x.Urgency).Must(v => v is null || (Enum.TryParse<TicketUrgency>(v, true, out var value) && Enum.IsDefined(value)))
+            .WithMessage("Urgency must be Low, Medium or High.");
+        RuleFor(x => x.AlertIds).Must(ids => ids is null || ids.Count <= 50 && ids.Distinct().Count() == ids.Count)
+            .WithMessage("Alert ids must be distinct and limited to 50.");
         RuleForEach(x => x.AlertIds).NotEmpty();
+        RuleFor(x => x.Category).Must((request, category) => !IsType(request.Type, TicketType.ServiceRequest) || !string.IsNullOrWhiteSpace(category))
+            .WithMessage("A category is required for service request tickets.");
+        RuleFor(x => x.DueAt)
+            .Must(due => due is null || due.Value > DateTimeOffset.UtcNow)
+            .WithMessage("Due date must be in the future.");
+        RuleFor(x => x.Risk)
+            .Must((request, risk) => !IsType(request.Type, TicketType.Change) || !string.IsNullOrWhiteSpace(risk) && risk.Trim().Length <= 4000)
+            .WithMessage("A risk assessment of at most 4000 characters is required for change tickets.");
+        RuleFor(x => x.TargetEnvironment)
+            .Must((request, environment) => !IsType(request.Type, TicketType.Change) || !string.IsNullOrWhiteSpace(environment) && environment.Trim().Length <= 80)
+            .WithMessage("A target environment of at most 80 characters is required for change tickets.");
+        RuleFor(x => x.PlannedStartAt)
+            .Must((request, start) => !IsType(request.Type, TicketType.Change)
+                || start is not null && start.Value > DateTimeOffset.UtcNow.AddMinutes(-1))
+            .WithMessage("A change ticket requires a planned start in the future.");
+        RuleFor(x => x.PlannedEndAt)
+            .Must((request, end) => !IsType(request.Type, TicketType.Change)
+                || (end is not null && request.PlannedStartAt is not null && end.Value > request.PlannedStartAt.Value
+                    && end.Value <= request.PlannedStartAt.Value.AddDays(7)))
+            .WithMessage("The planned window must end after it starts and span at most 7 days.");
     }
+
+    private static bool IsType(string? value, TicketType expected) =>
+        Enum.TryParse<TicketType>(value, true, out var parsed) && parsed == expected;
 }
 
-public sealed class TransitionIncidentRequestValidator : AbstractValidator<TransitionIncidentRequest>
+public sealed class TransitionTicketRequestValidator : AbstractValidator<TransitionTicketRequest>
 {
-    public TransitionIncidentRequestValidator() =>
-        RuleFor(x => x.Status).Must(v => Enum.TryParse<IncidentStatus>(v, true, out var value) && Enum.IsDefined(value));
+    public TransitionTicketRequestValidator() =>
+        RuleFor(x => x.Status)
+            .Must(v => Enum.TryParse<TicketStatus>(v, true, out var value) && Enum.IsDefined(value))
+            .WithMessage("Status must be New, Acknowledged, InProgress, PendingApproval, Approved, Rejected, Cancelled, Resolved or Closed.");
 }
 
-public sealed class CreateChangeRequestValidator : AbstractValidator<CreateChangeRequest>
+public sealed class DecideTicketRequestValidator : AbstractValidator<DecideTicketRequest>
 {
-    public CreateChangeRequestValidator()
+    public DecideTicketRequestValidator()
     {
-        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Description).NotEmpty().MaximumLength(8000);
-        RuleFor(x => x.Risk).NotEmpty().MaximumLength(4000);
-        RuleFor(x => x.TargetEnvironment).NotEmpty().MaximumLength(80);
-        RuleFor(x => x.PlannedStartAt).GreaterThan(DateTimeOffset.UtcNow.AddMinutes(-1));
-        RuleFor(x => x.PlannedEndAt).GreaterThan(x => x.PlannedStartAt).LessThanOrEqualTo(x => x.PlannedStartAt.AddDays(7));
-    }
-}
-
-public sealed class DecideChangeRequestValidator : AbstractValidator<DecideChangeRequest>
-{
-    public DecideChangeRequestValidator()
-    {
-        RuleFor(x => x.Decision).Must(v => Enum.TryParse<ChangeApprovalDecision>(v, true, out var value) && Enum.IsDefined(value));
+        RuleFor(x => x.Decision).Must(v => Enum.TryParse<TicketApprovalDecision>(v, true, out var value) && Enum.IsDefined(value))
+            .WithMessage("Decision must be Approved or Rejected.");
         RuleFor(x => x.Comment).MaximumLength(2000);
+    }
+}
+
+public sealed class AddTicketCommentRequestValidator : AbstractValidator<AddTicketCommentRequest>
+{
+    public AddTicketCommentRequestValidator()
+    {
+        RuleFor(x => x.Body).NotEmpty().MaximumLength(8000);
+    }
+}
+
+public sealed class AddTicketWorklogRequestValidator : AbstractValidator<AddTicketWorklogRequest>
+{
+    public AddTicketWorklogRequestValidator()
+    {
+        RuleFor(x => x.Minutes).InclusiveBetween(1, 1440);
+        RuleFor(x => x.Note).MaximumLength(2000);
+    }
+}
+
+public sealed class SetTicketDueDateRequestValidator : AbstractValidator<SetTicketDueDateRequest>
+{
+    public SetTicketDueDateRequestValidator()
+    {
+        RuleFor(x => x.DueAt)
+            .Must(due => due is null || due.Value > DateTimeOffset.UtcNow)
+            .WithMessage("Due date must be in the future.");
     }
 }
 
 public sealed class UpdateChangeApprovalPolicyRequestValidator : AbstractValidator<UpdateChangeApprovalPolicyRequest>
 {
     public UpdateChangeApprovalPolicyRequestValidator() => RuleFor(x => x.RequiredApprovals).InclusiveBetween(1, 5);
-}
-
-public sealed class CreateServiceRequestValidator : AbstractValidator<CreateServiceRequest>
-{
-    public CreateServiceRequestValidator()
-    {
-        RuleFor(x => x.Title).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Description).NotEmpty().MaximumLength(8000);
-        RuleFor(x => x.Category).NotEmpty().MaximumLength(100);
-    }
-}
-
-public sealed class TransitionServiceRequestValidator : AbstractValidator<TransitionServiceRequest>
-{
-    public TransitionServiceRequestValidator() =>
-        RuleFor(x => x.Status).Must(v => Enum.TryParse<ServiceRequestStatus>(v, true, out var value) && Enum.IsDefined(value));
 }
 
 public sealed class CreateAlertRuleRequestValidator : AbstractValidator<CreateAlertRuleRequest>
@@ -321,4 +356,161 @@ public sealed class CreateAlertRuleRequestValidator : AbstractValidator<CreateAl
         RuleFor(x => x.Threshold).Must(double.IsFinite);
         RuleFor(x => x.ConsecutiveBreaches).InclusiveBetween(1, 100);
     }
+}
+
+public sealed class CreateProjectRequestValidator : AbstractValidator<CreateProjectRequest>
+{
+    public CreateProjectRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+    }
+}
+
+public sealed class CreateWorkDnaCategoryRequestValidator : AbstractValidator<CreateWorkDnaCategoryRequest>
+{
+    public CreateWorkDnaCategoryRequestValidator()
+    {
+        RuleFor(x => x.CategoryName).NotEmpty().MaximumLength(100);
+        RuleFor(x => x.ActivityName).NotEmpty().MaximumLength(100);
+    }
+}
+
+public sealed class CreateWorkActivityRequestValidator : AbstractValidator<CreateWorkActivityRequest>
+{
+    public CreateWorkActivityRequestValidator()
+    {
+        RuleFor(x => x.ProjectId).NotEmpty();
+        RuleFor(x => x.AssigneeId).NotEmpty();
+        RuleFor(x => x.DnaCategoryId).NotEmpty();
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(255);
+        RuleFor(x => x.Description).MaximumLength(8000);
+        RuleFor(x => x.BusinessImpact).NotEmpty().MaximumLength(4000);
+        RuleFor(x => x.TargetMode).Must(WorkDnaRules.IsTargetMode).WithMessage("Target mode must be Auto or Manual.");
+        RuleFor(x => x.Severity).Must(WorkDnaRules.IsSeverity).WithMessage("Severity must be Low, Medium, High or Critical.");
+        RuleFor(x => x.EffortMinutes).InclusiveBetween(15, 1440);
+        RuleFor(x => x.EndTime).GreaterThan(x => x.StartTime).LessThanOrEqualTo(x => x.StartTime.AddDays(31));
+    }
+}
+
+public sealed class UpdateWorkActivityRequestValidator : AbstractValidator<UpdateWorkActivityRequest>
+{
+    public UpdateWorkActivityRequestValidator()
+    {
+        RuleFor(x => x.ProjectId).NotEmpty();
+        RuleFor(x => x.AssigneeId).NotEmpty();
+        RuleFor(x => x.DnaCategoryId).NotEmpty();
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(255);
+        RuleFor(x => x.Description).MaximumLength(8000);
+        RuleFor(x => x.BusinessImpact).NotEmpty().MaximumLength(4000);
+        RuleFor(x => x.TargetMode).Must(WorkDnaRules.IsTargetMode).WithMessage("Target mode must be Auto or Manual.");
+        RuleFor(x => x.Severity).Must(WorkDnaRules.IsSeverity).WithMessage("Severity must be Low, Medium, High or Critical.");
+        RuleFor(x => x.Status).Must(WorkDnaRules.IsOptionalActivityStatus).WithMessage("Status must be Pending, Scheduled, Completed or Overdue.");
+        RuleFor(x => x.EffortMinutes).InclusiveBetween(15, 1440);
+        RuleFor(x => x.EndTime).GreaterThan(x => x.StartTime).LessThanOrEqualTo(x => x.StartTime.AddDays(31));
+    }
+}
+
+public sealed class CreateWorkActivityScheduleRequestValidator : AbstractValidator<CreateWorkActivityScheduleRequest>
+{
+    public CreateWorkActivityScheduleRequestValidator()
+    {
+        RuleFor(x => x.ProjectId).NotEmpty();
+        RuleFor(x => x.AssigneeId).NotEmpty();
+        RuleFor(x => x.DnaCategoryId).NotEmpty();
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(255);
+        RuleFor(x => x.Description).MaximumLength(8000);
+        RuleFor(x => x.BusinessImpact).NotEmpty().MaximumLength(4000);
+        RuleFor(x => x.TargetMode).Must(WorkDnaRules.IsTargetMode).WithMessage("Target mode must be Auto or Manual.");
+        RuleFor(x => x.Severity).Must(WorkDnaRules.IsSeverity).WithMessage("Severity must be Low, Medium, High or Critical.");
+        RuleFor(x => x.Frequency).Must(WorkDnaRules.IsFrequency).WithMessage("Frequency must be Daily, Weekly or Monthly.");
+        RuleFor(x => x.EffortMinutes).InclusiveBetween(15, 1440);
+        RuleFor(x => x.StartHourUtc).InclusiveBetween(0, 23);
+        RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate);
+        RuleFor(x => x.Weekdays)
+            .Must(days => days is null || days.Count <= 7)
+            .Must(days => days is null || days.All(WorkDnaRules.IsWeekday))
+            .WithMessage("Weekdays must contain valid day names.");
+        RuleFor(x => x.Weekdays)
+            .Must((request, days) => !WorkDnaRules.IsFrequency(request.Frequency, WorkScheduleFrequency.Weekly)
+                || (days is not null && days.Count > 0))
+            .WithMessage("Weekly schedules require at least one weekday.");
+        RuleFor(x => x.DayOfMonth)
+            .Must((request, day) => !WorkDnaRules.IsFrequency(request.Frequency, WorkScheduleFrequency.Monthly)
+                || day is >= 1 and <= 31)
+            .WithMessage("Monthly schedules require a day of month between 1 and 31.");
+    }
+}
+
+public sealed class UpdateWorkActivityScheduleRequestValidator : AbstractValidator<UpdateWorkActivityScheduleRequest>
+{
+    public UpdateWorkActivityScheduleRequestValidator()
+    {
+        RuleFor(x => x.ProjectId).NotEmpty();
+        RuleFor(x => x.AssigneeId).NotEmpty();
+        RuleFor(x => x.DnaCategoryId).NotEmpty();
+        RuleFor(x => x.Title).NotEmpty().MaximumLength(255);
+        RuleFor(x => x.Description).MaximumLength(8000);
+        RuleFor(x => x.BusinessImpact).NotEmpty().MaximumLength(4000);
+        RuleFor(x => x.TargetMode).Must(WorkDnaRules.IsTargetMode).WithMessage("Target mode must be Auto or Manual.");
+        RuleFor(x => x.Severity).Must(WorkDnaRules.IsSeverity).WithMessage("Severity must be Low, Medium, High or Critical.");
+        RuleFor(x => x.Frequency).Must(WorkDnaRules.IsFrequency).WithMessage("Frequency must be Daily, Weekly or Monthly.");
+        RuleFor(x => x.EffortMinutes).InclusiveBetween(15, 1440);
+        RuleFor(x => x.StartHourUtc).InclusiveBetween(0, 23);
+        RuleFor(x => x.EndDate).GreaterThanOrEqualTo(x => x.StartDate);
+        RuleFor(x => x.Weekdays)
+            .Must(days => days is null || days.Count <= 7)
+            .Must(days => days is null || days.All(WorkDnaRules.IsWeekday))
+            .WithMessage("Weekdays must contain valid day names.");
+        RuleFor(x => x.Weekdays)
+            .Must((request, days) => !WorkDnaRules.IsFrequency(request.Frequency, WorkScheduleFrequency.Weekly)
+                || (days is not null && days.Count > 0))
+            .WithMessage("Weekly schedules require at least one weekday.");
+        RuleFor(x => x.DayOfMonth)
+            .Must((request, day) => !WorkDnaRules.IsFrequency(request.Frequency, WorkScheduleFrequency.Monthly)
+                || day is >= 1 and <= 31)
+            .WithMessage("Monthly schedules require a day of month between 1 and 31.");
+    }
+}
+
+public sealed class SetWorkCalendarDayRequestValidator : AbstractValidator<SetWorkCalendarDayRequest>
+{
+    public SetWorkCalendarDayRequestValidator()
+    {
+        RuleFor(x => x.DayType)
+            .Must(v => Enum.TryParse<WorkCalendarDayType>(v, true, out var value) && Enum.IsDefined(value))
+            .WithMessage("Day type must be Working, Holiday or Off.");
+        RuleFor(x => x.Label).MaximumLength(120);
+    }
+}
+
+public sealed class CreateWorkLeaveRequestValidator : AbstractValidator<CreateWorkLeaveRequest>
+{
+    public CreateWorkLeaveRequestValidator()
+    {
+        RuleFor(x => x.UserId).NotEmpty();
+        RuleFor(x => x.Hours).InclusiveBetween(1, 24);
+        RuleFor(x => x.Reason).MaximumLength(500);
+    }
+}
+
+internal static class WorkDnaRules
+{
+    public static bool IsTargetMode(string? value) =>
+        Enum.TryParse<WorkDnaTargetMode>(value, true, out var parsed) && Enum.IsDefined(parsed);
+
+    public static bool IsSeverity(string? value) =>
+        Enum.TryParse<WorkDnaSeverity>(value, true, out var parsed) && Enum.IsDefined(parsed);
+
+    public static bool IsOptionalActivityStatus(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+        || (Enum.TryParse<WorkActivityStatus>(value, true, out var parsed) && Enum.IsDefined(parsed));
+
+    public static bool IsFrequency(string? value) =>
+        Enum.TryParse<WorkScheduleFrequency>(value, true, out var parsed) && Enum.IsDefined(parsed);
+
+    public static bool IsFrequency(string? value, WorkScheduleFrequency expected) =>
+        Enum.TryParse<WorkScheduleFrequency>(value, true, out var parsed) && parsed == expected;
+
+    public static bool IsWeekday(string value) =>
+        Enum.TryParse<DayOfWeek>(value, true, out var parsed) && Enum.IsDefined(parsed);
 }

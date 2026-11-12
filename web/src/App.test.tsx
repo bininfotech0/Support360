@@ -56,5 +56,6 @@ describe('App routing', () => {
 
     expect(await screen.findByText('Page not found')).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument()
+    expect(document.title).toBe('Page not found · Support360')
   })
 })

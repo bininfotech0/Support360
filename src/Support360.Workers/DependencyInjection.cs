@@ -18,6 +18,7 @@ public static class DependencyInjection
 
         services.AddHostedService<AlertEvaluationWorker>();
         services.AddHostedService<AgentLivenessWorker>();
+        services.AddHostedService<WorkDnaScheduleWorker>();
         services.AddHostedService<RetentionWorker>();
         return services;
     }

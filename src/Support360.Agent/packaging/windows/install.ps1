@@ -1,7 +1,9 @@
 param(
   [Parameter(Mandatory = $true)][string]$BinaryPath,
   [Parameter(Mandatory = $true)][string]$ServerUrl,
-  [switch]$EnableDeployments
+  [switch]$EnableDeployments,
+  [string]$ManifestPublicKeyPath,
+  [string]$DeploymentRoot
 )
 
 $ErrorActionPreference = 'Stop'
@@ -16,6 +18,13 @@ $identityPath = Join-Path $dataDir 'identity.json'
 $queuePath = Join-Path $dataDir 'queue.json'
 $configPath = Join-Path $dataDir 'service.json'
 $serviceName = 'Support360Agent'
+$manifestKeyPath = Join-Path $dataDir 'manifest-public.pem'
+$deploymentRootPath = if ($DeploymentRoot) { $DeploymentRoot } else { Join-Path $dataDir 'deployments' }
+if ($EnableDeployments) {
+  if (-not $ManifestPublicKeyPath) { throw 'EnableDeployments requires -ManifestPublicKeyPath pointing to the server manifest public key PEM.' }
+  if (-not [IO.Path]::IsPathRooted($deploymentRootPath)) { throw 'DeploymentRoot must be an absolute path.' }
+  $manifestKeySource = (Resolve-Path -LiteralPath $ManifestPublicKeyPath).Path
+}
 if (Get-Service -Name $serviceName -ErrorAction SilentlyContinue) { throw 'Support360Agent is already installed. Uninstall it before reinstalling so the agent identity is not duplicated.' }
 
 New-Item -ItemType Directory -Force -Path $installDir, $dataDir | Out-Null
@@ -26,7 +35,18 @@ if ($LASTEXITCODE -ne 0) { throw 'Could not secure the agent installation direct
 & icacls.exe $dataDir /inheritance:r /grant:r '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' "${serviceSid}:(OI)(CI)M" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Could not secure the agent data directory.' }
 
-$config = @{ server = $ServerUrl.TrimEnd('/'); identity = $identityPath; queue = $queuePath } | ConvertTo-Json
+if ($EnableDeployments) {
+  New-Item -ItemType Directory -Force -Path $deploymentRootPath | Out-Null
+  & icacls.exe $deploymentRootPath /grant "${serviceSid}:(OI)(CI)M" | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'Could not grant the agent service access to the deployment root.' }
+  Copy-Item -LiteralPath $manifestKeySource -Destination $manifestKeyPath -Force
+  & icacls.exe $manifestKeyPath /inheritance:r /grant:r '*S-1-5-18:R' '*S-1-5-32-544:R' "${serviceSid}:R" | Out-Null
+  if ($LASTEXITCODE -ne 0) { throw 'Could not secure the manifest public key.' }
+}
+
+$configValues = @{ server = $ServerUrl.TrimEnd('/'); identity = $identityPath; queue = $queuePath }
+if ($EnableDeployments) { $configValues.manifestPublicKey = $manifestKeyPath; $configValues.deploymentRoot = $deploymentRootPath }
+$config = $configValues | ConvertTo-Json
 [IO.File]::WriteAllText($configPath, $config, [Text.UTF8Encoding]::new($false))
 & icacls.exe $configPath /inheritance:r /grant:r '*S-1-5-18:F' '*S-1-5-32-544:F' "${serviceSid}:R" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Could not secure the agent service configuration.' }

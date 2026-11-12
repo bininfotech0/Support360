@@ -60,6 +60,14 @@ describe('Layout', () => {
     expect(screen.getByText('Viewer')).toBeInTheDocument()
   })
 
+  it('links keyboard users to the main landmark', async () => {
+    renderLayout()
+
+    expect(await screen.findByText('Dashboard content')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute('href', '#main-content')
+    expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content')
+  })
+
   it('signs out and clears the stored session', async () => {
     renderLayout()
 

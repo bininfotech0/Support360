@@ -10,8 +10,8 @@ public sealed class DeploymentRequest : Entity, ITenantOwned
     public required string PackageName { get; set; }
     public required string PackageVersion { get; set; }
     public required string PackageSha256 { get; set; }
-    public Guid ChangeRequestId { get; set; }
-    public ChangeRequest ChangeRequest { get; set; } = null!;
+    public Guid ChangeTicketId { get; set; }
+    public Ticket ChangeTicket { get; set; } = null!;
     public required string Environment { get; set; }
     public string? GitRepoURL { get; set; }
     public string? GitBranch { get; set; }
@@ -21,5 +21,4 @@ public sealed class DeploymentRequest : Entity, ITenantOwned
     public required string RequestedBySubject { get; set; }
     public required string RequestedByDisplay { get; set; }
     public DateTimeOffset RequestedAt { get; set; }
-    public DateTimeOffset? UpdatedAt { get; set; }
 }

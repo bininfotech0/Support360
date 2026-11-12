@@ -53,15 +53,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-dotnet@v4
         with:
-          go-version-file: agent/go.mod
-          cache-dependency-path: agent/go.sum
-      - run: go test ./...
-        working-directory: agent
-      - run: go test -race ./...
-        working-directory: agent
-      - run: GOOS=windows GOARCH=amd64 go build ./...
-        working-directory: agent
-      - run: GOOS=linux GOARCH=amd64 go build ./...
-        working-directory: agent
+          dotnet-version: 10.0.x
+      - run: dotnet build src/Support360.Agent/Support360.Agent.csproj -c Release
+      - run: dotnet test tests/Support360.Tests.Agent/Support360.Tests.Agent.csproj
+      - run: dotnet publish src/Support360.Agent/Support360.Agent.csproj -c Release -r linux-x64 --self-contained false -o /tmp/agent-linux
+      - run: dotnet publish src/Support360.Agent/Support360.Agent.csproj -c Release -r win-x64 --self-contained false -o /tmp/agent-windows
+      - run: test -x /tmp/agent-linux/support360-agent && test -f /tmp/agent-windows/support360-agent.exe

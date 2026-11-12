@@ -19,12 +19,24 @@ public interface ISupport360DbContext
     DbSet<BatchJobExecution> BatchJobExecutions { get; }
     DbSet<AlertRule> AlertRules { get; }
     DbSet<Alert> Alerts { get; }
-    DbSet<Incident> Incidents { get; }
-    DbSet<IncidentAlert> IncidentAlerts { get; }
-    DbSet<ChangeRequest> ChangeRequests { get; }
-    DbSet<ChangeApproval> ChangeApprovals { get; }
-    DbSet<ServiceRequest> ServiceRequests { get; }
+    DbSet<Ticket> Tickets { get; }
+    DbSet<TicketAlert> TicketAlerts { get; }
+    DbSet<TicketApproval> TicketApprovals { get; }
+    DbSet<TicketActivity> TicketActivities { get; }
+    DbSet<TicketLink> TicketLinks { get; }
+    DbSet<TicketComment> TicketComments { get; }
+    DbSet<TicketWorklog> TicketWorklogs { get; }
+    DbSet<TicketWatcher> TicketWatchers { get; }
+    DbSet<TicketAttachment> TicketAttachments { get; }
+    DbSet<TicketNumberSequence> TicketNumberSequences { get; }
+    DbSet<Project> Projects { get; }
+    DbSet<WorkDnaCategory> WorkDnaCategories { get; }
+    DbSet<WorkActivity> WorkActivities { get; }
+    DbSet<WorkActivitySchedule> WorkActivitySchedules { get; }
+    DbSet<WorkCalendarDay> WorkCalendarDays { get; }
+    DbSet<WorkLeave> WorkLeaves { get; }
     DbSet<DeploymentPackage> DeploymentPackages { get; }
+    DbSet<DeploymentManifestNonce> DeploymentManifestNonces { get; }
     DbSet<DeploymentRequest> DeploymentRequests { get; }
     DbSet<AuditEvent> AuditEvents { get; }
     DbSet<UsageEvent> UsageEvents { get; }

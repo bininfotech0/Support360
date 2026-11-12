@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import { canOperate } from '../api/session'
 import { useAuth } from '../auth/authContext'
+import { TicketCollaborationPanel } from '../components/TicketCollaborationPanel'
 import { EmptyState, ErrorBanner, Loading, PageHeader, PageSection, StatusBadge } from '../components/ui'
 import { useLoad } from '../hooks/useLoad'
 import { formatDate } from '../utils'
@@ -13,15 +14,26 @@ const nextStatuses: Record<string, string[]> = {
   Resolved: ['Closed'],
 }
 
+const actionLabels: Record<string, string> = {
+  Acknowledged: 'Acknowledge',
+  InProgress: 'Start work',
+  Resolved: 'Resolve',
+  Closed: 'Close',
+}
+
+const statusFilters = ['all', 'New', 'Acknowledged', 'InProgress', 'Resolved', 'Closed']
+
 export function IncidentsPage() {
   const { user } = useAuth()
-  const incidents = useLoad('incidents', () => api.incidents())
+  const [status, setStatus] = useState('all')
+  const incidents = useLoad(`incidents:${status}`, () => api.incidents(status === 'all' ? undefined : status))
   const alerts = useLoad('incident-alerts', () => api.alerts('Active'))
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [severity, setSeverity] = useState('Medium')
   const [alertId, setAlertId] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
 
   const create = async (event: FormEvent) => {
     event.preventDefault(); setError(null)
@@ -49,11 +61,12 @@ export function IncidentsPage() {
         <button type="submit" className="button button-primary">Create incident</button>
       </form>
     </PageSection> : null}
-    <PageSection title="Incident register" description={`${incidents.data?.length ?? 0} incidents`}>
+    <PageSection title="Incident register" description={`${incidents.data?.length ?? 0} incidents in the selected view.`} actions={<select value={status} onChange={e => setStatus(e.target.value)} aria-label="Incident status filter">{statusFilters.map(value => <option key={value} value={value}>{value === 'all' ? 'All statuses' : value === 'InProgress' ? 'In progress' : value}</option>)}</select>}>
       {incidents.loading && !incidents.data ? <Loading label="Loading incidents" /> : null}
       {incidents.error ? <ErrorBanner message={incidents.error} onRetry={incidents.refresh} /> : null}
       {!incidents.loading && incidents.data?.length === 0 ? <EmptyState title="No incidents recorded" detail="Create an incident when an operational issue needs coordinated investigation." /> : null}
-      {!!incidents.data?.length ? <div className="table-wrap"><table><thead><tr><th>Incident</th><th>Severity</th><th>Status</th><th>Alerts</th><th>Related changes</th><th>Opened</th><th>Actions</th></tr></thead><tbody>{incidents.data.map(incident => <tr key={incident.id}><td><strong>{incident.number}</strong><span className="muted block">{incident.title}</span><span className="muted block">{incident.description}</span></td><td><StatusBadge value={incident.severity} /></td><td><StatusBadge value={incident.status} /></td><td>{incident.alerts.length ? incident.alerts.map(alert => <span className="block" key={alert.alertId}>{alert.message}</span>) : '—'}</td><td>{incident.relatedChangeRequestIds.length ? incident.relatedChangeRequestIds.length : '—'}</td><td>{formatDate(incident.openedAt)}</td><td>{canOperate(user) ? <div className="inline-actions">{(nextStatuses[incident.status] ?? []).map(status => <button key={status} type="button" className="button button-ghost" onClick={() => transition(incident.id, status)}>{status === 'InProgress' ? 'Start work' : status}</button>)}</div> : '—'}</td></tr>)}</tbody></table></div> : null}
+      {incidents.data?.length ? <div className="table-wrap"><table><thead><tr><th>Incident</th><th>Severity</th><th>Status</th><th>Alerts</th><th>Related changes</th><th>Opened</th><th>Actions</th></tr></thead><tbody>{incidents.data.map(incident => <tr key={incident.id}><td><strong>{incident.number}</strong> <button type="button" className="button button-ghost" onClick={() => setSelected(incident.id)}>Details</button><span className="muted block">{incident.title}</span><span className="muted block">{incident.description}</span></td><td><StatusBadge value={incident.severity} /></td><td><StatusBadge value={incident.status} /></td><td>{incident.alerts.length ? incident.alerts.map(alert => <span className="block" key={alert.alertId}>{alert.message}</span>) : '—'}</td><td>{incident.relatedChangeRequestIds.length ? incident.relatedChangeRequestIds.length : '—'}</td><td>{formatDate(incident.openedAt)}</td><td>{canOperate(user) ? <div className="inline-actions">{(nextStatuses[incident.status] ?? []).map(status => <button key={status} type="button" className="button button-ghost" onClick={() => transition(incident.id, status)}>{actionLabels[status] ?? status}</button>)}</div> : '—'}</td></tr>)}</tbody></table></div> : null}
     </PageSection>
+    {selected ? <TicketCollaborationPanel ticketId={selected} onClose={() => setSelected(null)} onChanged={incidents.refresh} /> : null}
   </>
 }

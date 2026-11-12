@@ -28,12 +28,24 @@ public sealed class Support360DbContext : DbContext, ISupport360DbContext
     public DbSet<BatchJobExecution> BatchJobExecutions => Set<BatchJobExecution>();
     public DbSet<AlertRule> AlertRules => Set<AlertRule>();
     public DbSet<Alert> Alerts => Set<Alert>();
-    public DbSet<Incident> Incidents => Set<Incident>();
-    public DbSet<IncidentAlert> IncidentAlerts => Set<IncidentAlert>();
-    public DbSet<ChangeRequest> ChangeRequests => Set<ChangeRequest>();
-    public DbSet<ChangeApproval> ChangeApprovals => Set<ChangeApproval>();
-    public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>();
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<TicketAlert> TicketAlerts => Set<TicketAlert>();
+    public DbSet<TicketApproval> TicketApprovals => Set<TicketApproval>();
+    public DbSet<TicketActivity> TicketActivities => Set<TicketActivity>();
+    public DbSet<TicketLink> TicketLinks => Set<TicketLink>();
+    public DbSet<TicketComment> TicketComments => Set<TicketComment>();
+    public DbSet<TicketWorklog> TicketWorklogs => Set<TicketWorklog>();
+    public DbSet<TicketWatcher> TicketWatchers => Set<TicketWatcher>();
+    public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
+    public DbSet<TicketNumberSequence> TicketNumberSequences => Set<TicketNumberSequence>();
+    public DbSet<Project> Projects => Set<Project>();
+    public DbSet<WorkDnaCategory> WorkDnaCategories => Set<WorkDnaCategory>();
+    public DbSet<WorkActivity> WorkActivities => Set<WorkActivity>();
+    public DbSet<WorkActivitySchedule> WorkActivitySchedules => Set<WorkActivitySchedule>();
+    public DbSet<WorkCalendarDay> WorkCalendarDays => Set<WorkCalendarDay>();
+    public DbSet<WorkLeave> WorkLeaves => Set<WorkLeave>();
     public DbSet<DeploymentPackage> DeploymentPackages => Set<DeploymentPackage>();
+    public DbSet<DeploymentManifestNonce> DeploymentManifestNonces => Set<DeploymentManifestNonce>();
     public DbSet<DeploymentRequest> DeploymentRequests => Set<DeploymentRequest>();
     public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
     public DbSet<UsageEvent> UsageEvents => Set<UsageEvent>();
@@ -227,74 +239,231 @@ public sealed class Support360DbContext : DbContext, ISupport360DbContext
             e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
         });
 
-        modelBuilder.Entity<Incident>(e =>
+        modelBuilder.Entity<Ticket>(e =>
         {
-            e.ToTable("Incidents");
+            e.ToTable("Tickets");
             e.HasKey(x => x.Id);
             e.Property(x => x.Number).HasMaxLength(40).IsRequired();
             e.Property(x => x.Title).HasMaxLength(200).IsRequired();
             e.Property(x => x.Description).HasMaxLength(8000).IsRequired();
-            e.Property(x => x.Severity).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.Category).HasMaxLength(100);
+            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.Priority).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.Impact).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.Urgency).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.Risk).HasMaxLength(4000);
+            e.Property(x => x.TargetEnvironment).HasMaxLength(80);
+            e.Property(x => x.RequestedBySubject).HasMaxLength(255);
+            e.Property(x => x.RequestedByDisplay).HasMaxLength(200);
+            e.Property(x => x.RequiredApprovals).HasDefaultValue(1);
+            e.Property(x => x.ConcurrencyToken).IsConcurrencyToken();
             e.HasIndex(x => new { x.TenantId, x.Number }).IsUnique();
-            e.HasIndex(x => new { x.TenantId, x.Status, x.Severity, x.OpenedAt });
+            e.HasIndex(x => new { x.TenantId, x.Type, x.Status, x.OpenedAt });
+            e.HasIndex(x => new { x.TenantId, x.Status, x.Priority, x.OpenedAt });
+            e.HasIndex(x => new { x.TenantId, x.AssignedToUserId, x.Status });
             e.HasOne<BatchJobExecution>().WithMany().HasForeignKey(x => x.RelatedBatchJobExecutionId).OnDelete(DeleteBehavior.SetNull);
             e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
         });
 
-        modelBuilder.Entity<IncidentAlert>(e =>
+        modelBuilder.Entity<TicketAlert>(e =>
         {
-            e.ToTable("IncidentAlerts");
+            e.ToTable("TicketAlerts");
             e.HasKey(x => x.Id);
-            e.HasIndex(x => new { x.TenantId, x.IncidentId, x.AlertId }).IsUnique();
-            e.HasOne(x => x.Incident).WithMany(x => x.Alerts).HasForeignKey(x => x.IncidentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.TenantId, x.TicketId, x.AlertId }).IsUnique();
+            e.HasOne(x => x.Ticket).WithMany(x => x.Alerts).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Alert).WithMany().HasForeignKey(x => x.AlertId).OnDelete(DeleteBehavior.Cascade);
             e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
         });
 
-        modelBuilder.Entity<ChangeRequest>(e =>
+        modelBuilder.Entity<TicketApproval>(e =>
         {
-            e.ToTable("ChangeRequests");
-            e.HasKey(x => x.Id);
-            e.Property(x => x.Number).HasMaxLength(40).IsRequired();
-            e.Property(x => x.Title).HasMaxLength(200).IsRequired();
-            e.Property(x => x.Description).HasMaxLength(8000).IsRequired();
-            e.Property(x => x.Risk).HasMaxLength(4000).IsRequired();
-            e.Property(x => x.TargetEnvironment).HasMaxLength(80).IsRequired();
-            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
-            e.Property(x => x.ConcurrencyToken).IsConcurrencyToken();
-            e.HasIndex(x => new { x.TenantId, x.Number }).IsUnique();
-            e.HasIndex(x => new { x.TenantId, x.Status, x.PlannedStartAt });
-            e.HasOne(x => x.RelatedIncident).WithMany(x => x.ChangeRequests).HasForeignKey(x => x.RelatedIncidentId).OnDelete(DeleteBehavior.SetNull);
-            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
-        });
-
-        modelBuilder.Entity<ChangeApproval>(e =>
-        {
-            e.ToTable("ChangeApprovals");
+            e.ToTable("TicketApprovals");
             e.HasKey(x => x.Id);
             e.Property(x => x.ApproverSubject).HasMaxLength(255).IsRequired();
             e.Property(x => x.ApproverDisplay).HasMaxLength(200).IsRequired();
             e.Property(x => x.Decision).HasConversion<string>().HasMaxLength(32);
             e.Property(x => x.Comment).HasMaxLength(2000);
-            e.HasIndex(x => new { x.TenantId, x.ChangeRequestId, x.ApproverSubject }).IsUnique();
-            e.HasOne(x => x.ChangeRequest).WithMany(x => x.Approvals).HasForeignKey(x => x.ChangeRequestId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.TenantId, x.TicketId, x.ApproverSubject }).IsUnique();
+            e.HasOne(x => x.Ticket).WithMany(x => x.Approvals).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
             e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
         });
 
-        modelBuilder.Entity<ServiceRequest>(e =>
+        modelBuilder.Entity<TicketActivity>(e =>
         {
-            e.ToTable("ServiceRequests");
+            e.ToTable("TicketActivities");
             e.HasKey(x => x.Id);
-            e.Property(x => x.Number).HasMaxLength(40).IsRequired();
-            e.Property(x => x.Title).HasMaxLength(200).IsRequired();
-            e.Property(x => x.Description).HasMaxLength(8000).IsRequired();
-            e.Property(x => x.Category).HasMaxLength(100).IsRequired();
-            e.Property(x => x.RequestedBySubject).HasMaxLength(255).IsRequired();
-            e.Property(x => x.RequestedByDisplay).HasMaxLength(200).IsRequired();
-            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
-            e.HasIndex(x => new { x.TenantId, x.Number }).IsUnique();
-            e.HasIndex(x => new { x.TenantId, x.Status, x.OpenedAt });
+            e.Property(x => x.Kind).HasMaxLength(64).IsRequired();
+            e.Property(x => x.FromStatus).HasMaxLength(32);
+            e.Property(x => x.ToStatus).HasMaxLength(32);
+            e.Property(x => x.Detail).HasMaxLength(2000);
+            e.Property(x => x.ActorDisplay).HasMaxLength(200);
+            e.HasIndex(x => new { x.TenantId, x.TicketId, x.OccurredAt });
+            e.HasOne(x => x.Ticket).WithMany(x => x.Activities).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<TicketLink>(e =>
+        {
+            e.ToTable("TicketLinks");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.LinkType).HasConversion<string>().HasMaxLength(32);
+            e.HasIndex(x => new { x.TenantId, x.SourceTicketId, x.TargetTicketId, x.LinkType }).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.TargetTicketId });
+            e.HasOne(x => x.SourceTicket).WithMany().HasForeignKey(x => x.SourceTicketId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.TargetTicket).WithMany().HasForeignKey(x => x.TargetTicketId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<TicketComment>(e =>
+        {
+            e.ToTable("TicketComments");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.AuthorSubject).HasMaxLength(255);
+            e.Property(x => x.AuthorDisplay).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Body).HasMaxLength(8000).IsRequired();
+            e.HasIndex(x => new { x.TenantId, x.TicketId, x.CreatedAt });
+            e.HasOne(x => x.Ticket).WithMany(x => x.Comments).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<TicketWorklog>(e =>
+        {
+            e.ToTable("TicketWorklogs");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.AuthorSubject).HasMaxLength(255);
+            e.Property(x => x.AuthorDisplay).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Note).HasMaxLength(2000);
+            e.HasIndex(x => new { x.TenantId, x.TicketId, x.WorkedAt });
+            e.HasOne(x => x.Ticket).WithMany(x => x.Worklogs).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<TicketWatcher>(e =>
+        {
+            e.ToTable("TicketWatchers");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Subject).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Display).HasMaxLength(200).IsRequired();
+            e.HasIndex(x => new { x.TenantId, x.TicketId, x.Subject }).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.UserId });
+            e.HasOne(x => x.Ticket).WithMany(x => x.Watchers).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<TicketAttachment>(e =>
+        {
+            e.ToTable("TicketAttachments");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.FileName).HasMaxLength(255).IsRequired();
+            e.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Sha256).HasMaxLength(64).IsRequired();
+            e.Property(x => x.Content).IsRequired();
+            e.Property(x => x.UploadedByDisplay).HasMaxLength(200).IsRequired();
+            e.HasIndex(x => new { x.TenantId, x.TicketId, x.UploadedAt });
+            e.HasOne(x => x.Ticket).WithMany(x => x.Attachments).HasForeignKey(x => x.TicketId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<TicketNumberSequence>(e =>
+        {
+            e.ToTable("TicketNumberSequences");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.ConcurrencyToken).IsConcurrencyToken();
+            e.HasIndex(x => new { x.TenantId, x.Type }).IsUnique();
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<Project>(e =>
+        {
+            e.ToTable("Projects");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(50).IsRequired();
+            e.HasIndex(x => new { x.TenantId, x.Name }).IsUnique();
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<WorkDnaCategory>(e =>
+        {
+            e.ToTable("WorkDnaCategories");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.CategoryName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.ActivityName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            e.HasIndex(x => new { x.TenantId, x.CategoryName, x.ActivityName }).IsUnique();
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<WorkActivity>(e =>
+        {
+            e.ToTable("WorkActivities");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Title).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(8000);
+            e.Property(x => x.TargetMode).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Severity).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            e.Property(x => x.BusinessImpact).HasMaxLength(4000);
+            e.HasIndex(x => new { x.TenantId, x.StartTime });
+            e.HasIndex(x => new { x.TenantId, x.AssigneeId, x.StartTime });
+            e.HasIndex(x => new { x.TenantId, x.ScheduleId, x.ScheduledFor }).IsUnique();
+            e.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Assignee).WithMany().HasForeignKey(x => x.AssigneeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DnaCategory).WithMany().HasForeignKey(x => x.DnaCategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Schedule).WithMany(x => x.GeneratedActivities)
+                .HasForeignKey(x => x.ScheduleId).OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<WorkActivitySchedule>(e =>
+        {
+            e.ToTable("WorkActivitySchedules");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Title).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(8000);
+            e.Property(x => x.TargetMode).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Severity).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Frequency).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Weekdays).HasMaxLength(100);
+            e.Property(x => x.BusinessImpact).HasMaxLength(4000);
+            e.Property(x => x.IsActive).HasDefaultValue(true);
+            e.HasIndex(x => new { x.TenantId, x.IsActive });
+            e.HasOne(x => x.Project).WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Assignee).WithMany().HasForeignKey(x => x.AssigneeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.DnaCategory).WithMany().HasForeignKey(x => x.DnaCategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<WorkCalendarDay>(e =>
+        {
+            e.ToTable("WorkCalendarDays");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.DayType).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Label).HasMaxLength(120);
+            e.HasIndex(x => new { x.TenantId, x.Date }).IsUnique();
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<WorkLeave>(e =>
+        {
+            e.ToTable("WorkLeaves");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Reason).HasMaxLength(500);
+            e.HasIndex(x => new { x.TenantId, x.UserId, x.Date }).IsUnique();
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
+        });
+
+        modelBuilder.Entity<DeploymentManifestNonce>(e =>
+        {
+            e.ToTable("DeploymentManifestNonces");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Nonce).HasMaxLength(128).IsRequired();
+            e.Property(x => x.DeploymentId).IsRequired();
+            e.HasIndex(x => x.Nonce).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.Used, x.ExpiresAt });
             e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
         });
 
@@ -322,11 +491,11 @@ public sealed class Support360DbContext : DbContext, ISupport360DbContext
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(32);
             e.Property(x => x.RequestedBySubject).HasMaxLength(255).IsRequired();
             e.Property(x => x.RequestedByDisplay).HasMaxLength(255).IsRequired();
-            e.HasIndex(x => new { x.TenantId, x.ChangeRequestId }).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.ChangeTicketId }).IsUnique();
             e.HasIndex(x => new { x.TenantId, x.TargetAgentId, x.Status });
             e.HasOne(x => x.TargetAgent).WithMany().HasForeignKey(x => x.TargetAgentId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Package).WithMany().HasForeignKey(x => x.DeploymentPackageId).OnDelete(DeleteBehavior.Restrict);
-            e.HasOne(x => x.ChangeRequest).WithMany().HasForeignKey(x => x.ChangeRequestId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ChangeTicket).WithMany().HasForeignKey(x => x.ChangeTicketId).OnDelete(DeleteBehavior.Restrict);
             e.HasQueryFilter(x => _tenantContext.IsSystem || x.TenantId == _tenantContext.TenantId);
         });
 

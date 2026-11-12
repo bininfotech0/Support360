@@ -41,7 +41,7 @@ describe('DeploymentsPage', () => {
 
     expect(await screen.findByText('Deployment execution is not enabled in this build.')).toBeInTheDocument()
     expect(screen.getByText(/no deployment is simulated or claimed/i)).toBeInTheDocument()
-    expect(screen.getByText('Not exposed')).toBeInTheDocument()
+    expect(screen.getByText('Unavailable')).toBeInTheDocument()
   })
 
   it('shows package upload controls and keeps execution disabled without a selected artifact', async () => {
@@ -65,7 +65,8 @@ describe('DeploymentsPage', () => {
     fireEvent.change(await screen.findByLabelText('Target agent'), { target: { value: 'a1' } })
     fireEvent.change(screen.getByLabelText('Package'), { target: { value: 'p1' } })
     fireEvent.change(screen.getByLabelText('Change request'), { target: { value: 'c1' } })
+    fireEvent.change(screen.getByLabelText(/Target path/), { target: { value: '/srv/support360/web' } })
     fireEvent.click(screen.getByRole('button', { name: 'Create request' }))
-    await waitFor(() => expect(create).toHaveBeenCalledWith({ targetAgentId: 'a1', deploymentPackageId: 'p1', changeRequestId: 'c1' }))
+    await waitFor(() => expect(create).toHaveBeenCalledWith({ targetAgentId: 'a1', deploymentPackageId: 'p1', changeRequestId: 'c1', targetPath: '/srv/support360/web' }))
   })
 })

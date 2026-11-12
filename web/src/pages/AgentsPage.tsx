@@ -7,6 +7,7 @@ import { useAuth } from '../auth/authContext'
 import {
   EmptyState,
   ErrorBanner,
+  LiveStatus,
   Loading,
   PageHeader,
   PageSection,
@@ -81,10 +82,7 @@ export function AgentsPage() {
         description="Enroll Windows or Linux endpoints and inspect their latest reported state."
         actions={
           <>
-            <span className={`live-status ${connected ? 'is-live' : ''}`}>
-              <span className="live-dot" aria-hidden="true" />
-              {connected ? 'Live' : 'Reconnecting'}
-            </span>
+            <LiveStatus connected={connected} />
             <button type="button" className="button button-ghost" onClick={() => { agents.refresh(); enrollments.refresh() }}>
               Refresh
             </button>

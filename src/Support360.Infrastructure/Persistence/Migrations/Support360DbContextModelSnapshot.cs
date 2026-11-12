@@ -670,42 +670,25 @@ namespace Support360.Infrastructure.Persistence.Migrations
                     b.ToTable("BatchJobExecutions", (string)null);
                 });
 
-            modelBuilder.Entity("Support360.Domain.Entities.ChangeApproval", b =>
+            modelBuilder.Entity("Support360.Domain.Entities.DeploymentManifestNonce", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ApproverDisplay")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("ApproverSubject")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<Guid?>("ApproverUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ChangeRequestId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Comment")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTimeOffset>("DecidedAt")
+                    b.Property<Guid>("DeploymentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Decision")
+                    b.Property<string>("Nonce")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
@@ -713,98 +696,17 @@ namespace Support360.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChangeRequestId");
-
-                    b.HasIndex("TenantId", "ChangeRequestId", "ApproverSubject")
-                        .IsUnique();
-
-                    b.ToTable("ChangeApprovals", (string)null);
-                });
-
-            modelBuilder.Entity("Support360.Domain.Entities.ChangeRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ConcurrencyToken")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(8000)
-                        .HasColumnType("character varying(8000)");
-
-                    b.Property<string>("Number")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<DateTimeOffset>("PlannedEndAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("PlannedStartAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RelatedIncidentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("RequestedByDisplay")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("RequestedBySubject")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("RequestedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("RequiredApprovals")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Risk")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("TargetEnvironment")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<bool>("Used")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RelatedIncidentId");
-
-                    b.HasIndex("TenantId", "Number")
+                    b.HasIndex("Nonce")
                         .IsUnique();
 
-                    b.HasIndex("TenantId", "Status", "PlannedStartAt");
+                    b.HasIndex("TenantId", "Used", "ExpiresAt");
 
-                    b.ToTable("ChangeRequests", (string)null);
+                    b.ToTable("DeploymentManifestNonces", (string)null);
                 });
 
             modelBuilder.Entity("Support360.Domain.Entities.DeploymentPackage", b =>
@@ -863,7 +765,7 @@ namespace Support360.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("ChangeRequestId")
+                    b.Property<Guid>("ChangeTicketId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("CreatedAt")
@@ -933,130 +835,18 @@ namespace Support360.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ChangeRequestId");
+                    b.HasIndex("ChangeTicketId");
 
                     b.HasIndex("DeploymentPackageId");
 
                     b.HasIndex("TargetAgentId");
 
-                    b.HasIndex("TenantId", "ChangeRequestId")
+                    b.HasIndex("TenantId", "ChangeTicketId")
                         .IsUnique();
 
                     b.HasIndex("TenantId", "TargetAgentId", "Status");
 
                     b.ToTable("DeploymentRequests", (string)null);
-                });
-
-            modelBuilder.Entity("Support360.Domain.Entities.Incident", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("AcknowledgedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("AssignedToUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("ClosedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(8000)
-                        .HasColumnType("character varying(8000)");
-
-                    b.Property<string>("Number")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<DateTimeOffset>("OpenedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("RelatedBatchJobExecutionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Severity")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RelatedBatchJobExecutionId");
-
-                    b.HasIndex("TenantId", "Number")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId", "Status", "Severity", "OpenedAt");
-
-                    b.ToTable("Incidents", (string)null);
-                });
-
-            modelBuilder.Entity("Support360.Domain.Entities.IncidentAlert", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("AlertId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("IncidentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("LinkedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("LinkedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AlertId");
-
-                    b.HasIndex("IncidentId");
-
-                    b.HasIndex("TenantId", "IncidentId", "AlertId")
-                        .IsUnique();
-
-                    b.ToTable("IncidentAlerts", (string)null);
                 });
 
             modelBuilder.Entity("Support360.Domain.Entities.MetricSample", b =>
@@ -1113,82 +903,37 @@ namespace Support360.Infrastructure.Persistence.Migrations
                     b.ToTable("MetricSamples", (string)null);
                 });
 
-            modelBuilder.Entity("Support360.Domain.Entities.ServiceRequest", b =>
+            modelBuilder.Entity("Support360.Domain.Entities.Project", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTimeOffset?>("AcknowledgedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("AssignedToUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTimeOffset?>("ClosedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(8000)
-                        .HasColumnType("character varying(8000)");
-
-                    b.Property<string>("Number")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<DateTimeOffset>("OpenedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("RequestedByDisplay")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<string>("RequestedBySubject")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<Guid?>("RequestedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId", "Number")
+                    b.HasIndex("TenantId", "Name")
                         .IsUnique();
 
-                    b.HasIndex("TenantId", "Status", "OpenedAt");
-
-                    b.ToTable("ServiceRequests", (string)null);
+                    b.ToTable("Projects", (string)null);
                 });
 
             modelBuilder.Entity("Support360.Domain.Entities.Tenant", b =>
@@ -1241,6 +986,556 @@ namespace Support360.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Tenants", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.Ticket", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AssignedToUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<string>("Impact")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<DateTimeOffset>("OpenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("PlannedEndAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("PlannedStartAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("RelatedBatchJobExecutionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestedByDisplay")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("RequestedBySubject")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("RequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RequiredApprovals")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Risk")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("TargetEnvironment")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Urgency")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RelatedBatchJobExecutionId");
+
+                    b.HasIndex("TenantId", "Number")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "AssignedToUserId", "Status");
+
+                    b.HasIndex("TenantId", "Status", "Priority", "OpenedAt");
+
+                    b.HasIndex("TenantId", "Type", "Status", "OpenedAt");
+
+                    b.ToTable("Tickets", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketActivity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorDisplay")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ToStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("TenantId", "TicketId", "OccurredAt");
+
+                    b.ToTable("TicketActivities", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AlertId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("LinkedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LinkedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlertId");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("TenantId", "TicketId", "AlertId")
+                        .IsUnique();
+
+                    b.ToTable("TicketAlerts", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketApproval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApproverDisplay")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ApproverSubject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("ApproverUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("TenantId", "TicketId", "ApproverSubject")
+                        .IsUnique();
+
+                    b.ToTable("TicketApprovals", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UploadedByDisplay")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("TenantId", "TicketId", "UploadedAt");
+
+                    b.ToTable("TicketAttachments", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorDisplay")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("AuthorSubject")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("AuthorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsInternal")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("TenantId", "TicketId", "CreatedAt");
+
+                    b.ToTable("TicketComments", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LinkType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("LinkedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("SourceTicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TargetTicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceTicketId");
+
+                    b.HasIndex("TargetTicketId");
+
+                    b.HasIndex("TenantId", "TargetTicketId");
+
+                    b.HasIndex("TenantId", "SourceTicketId", "TargetTicketId", "LinkType")
+                        .IsUnique();
+
+                    b.ToTable("TicketLinks", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketNumberSequence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LastIssued")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Type")
+                        .IsUnique();
+
+                    b.ToTable("TicketNumberSequences", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketWatcher", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Display")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("TenantId", "UserId");
+
+                    b.HasIndex("TenantId", "TicketId", "Subject")
+                        .IsUnique();
+
+                    b.ToTable("TicketWatchers", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketWorklog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AuthorDisplay")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("AuthorSubject")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("AuthorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Minutes")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("WorkedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TicketId");
+
+                    b.HasIndex("TenantId", "TicketId", "WorkedAt");
+
+                    b.ToTable("TicketWorklogs", (string)null);
                 });
 
             modelBuilder.Entity("Support360.Domain.Entities.UsageEvent", b =>
@@ -1333,6 +1628,302 @@ namespace Support360.Infrastructure.Persistence.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkActivity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssigneeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BusinessImpact")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<Guid>("DnaCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("EffortMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("EndTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IgnoreOff")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("ScheduledFor")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTimeOffset>("StartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("TargetMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeId");
+
+                    b.HasIndex("DnaCategoryId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ScheduleId");
+
+                    b.HasIndex("TenantId", "StartTime");
+
+                    b.HasIndex("TenantId", "AssigneeId", "StartTime");
+
+                    b.HasIndex("TenantId", "ScheduleId", "ScheduledFor")
+                        .IsUnique();
+
+                    b.ToTable("WorkActivities", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkActivitySchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssigneeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BusinessImpact")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DayOfMonth")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<Guid>("DnaCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("EffortMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Frequency")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IgnoreOff")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Severity")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("StartHourUtc")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TargetMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Weekdays")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeId");
+
+                    b.HasIndex("DnaCategoryId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("TenantId", "IsActive");
+
+                    b.ToTable("WorkActivitySchedules", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkCalendarDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<string>("DayType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("WorkCalendarDays", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkDnaCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActivityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "CategoryName", "ActivityName")
+                        .IsUnique();
+
+                    b.ToTable("WorkDnaCategories", (string)null);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkLeave", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Hours")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TenantId", "UserId", "Date")
+                        .IsUnique();
+
+                    b.ToTable("WorkLeaves", (string)null);
                 });
 
             modelBuilder.Entity("Support360.Domain.Entities.Agent", b =>
@@ -1440,32 +2031,11 @@ namespace Support360.Infrastructure.Persistence.Migrations
                     b.Navigation("BatchJob");
                 });
 
-            modelBuilder.Entity("Support360.Domain.Entities.ChangeApproval", b =>
-                {
-                    b.HasOne("Support360.Domain.Entities.ChangeRequest", "ChangeRequest")
-                        .WithMany("Approvals")
-                        .HasForeignKey("ChangeRequestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ChangeRequest");
-                });
-
-            modelBuilder.Entity("Support360.Domain.Entities.ChangeRequest", b =>
-                {
-                    b.HasOne("Support360.Domain.Entities.Incident", "RelatedIncident")
-                        .WithMany("ChangeRequests")
-                        .HasForeignKey("RelatedIncidentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("RelatedIncident");
-                });
-
             modelBuilder.Entity("Support360.Domain.Entities.DeploymentRequest", b =>
                 {
-                    b.HasOne("Support360.Domain.Entities.ChangeRequest", "ChangeRequest")
+                    b.HasOne("Support360.Domain.Entities.Ticket", "ChangeTicket")
                         .WithMany()
-                        .HasForeignKey("ChangeRequestId")
+                        .HasForeignKey("ChangeTicketId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1481,38 +2051,11 @@ namespace Support360.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("ChangeRequest");
+                    b.Navigation("ChangeTicket");
 
                     b.Navigation("Package");
 
                     b.Navigation("TargetAgent");
-                });
-
-            modelBuilder.Entity("Support360.Domain.Entities.Incident", b =>
-                {
-                    b.HasOne("Support360.Domain.Entities.BatchJobExecution", null)
-                        .WithMany()
-                        .HasForeignKey("RelatedBatchJobExecutionId")
-                        .OnDelete(DeleteBehavior.SetNull);
-                });
-
-            modelBuilder.Entity("Support360.Domain.Entities.IncidentAlert", b =>
-                {
-                    b.HasOne("Support360.Domain.Entities.Alert", "Alert")
-                        .WithMany()
-                        .HasForeignKey("AlertId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Support360.Domain.Entities.Incident", "Incident")
-                        .WithMany("Alerts")
-                        .HasForeignKey("IncidentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Alert");
-
-                    b.Navigation("Incident");
                 });
 
             modelBuilder.Entity("Support360.Domain.Entities.MetricSample", b =>
@@ -1526,6 +2069,118 @@ namespace Support360.Infrastructure.Persistence.Migrations
                     b.Navigation("Agent");
                 });
 
+            modelBuilder.Entity("Support360.Domain.Entities.Ticket", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.BatchJobExecution", null)
+                        .WithMany()
+                        .HasForeignKey("RelatedBatchJobExecutionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketActivity", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("Activities")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketAlert", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.Alert", "Alert")
+                        .WithMany()
+                        .HasForeignKey("AlertId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Support360.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("Alerts")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Alert");
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketApproval", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("Approvals")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketAttachment", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("Attachments")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketComment", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("Comments")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketLink", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.Ticket", "SourceTicket")
+                        .WithMany()
+                        .HasForeignKey("SourceTicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Support360.Domain.Entities.Ticket", "TargetTicket")
+                        .WithMany()
+                        .HasForeignKey("TargetTicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SourceTicket");
+
+                    b.Navigation("TargetTicket");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketWatcher", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("Watchers")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.TicketWorklog", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("Worklogs")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ticket");
+                });
+
             modelBuilder.Entity("Support360.Domain.Entities.User", b =>
                 {
                     b.HasOne("Support360.Domain.Entities.Tenant", "Tenant")
@@ -1535,6 +2190,78 @@ namespace Support360.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkActivity", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Support360.Domain.Entities.WorkDnaCategory", "DnaCategory")
+                        .WithMany()
+                        .HasForeignKey("DnaCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Support360.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Support360.Domain.Entities.WorkActivitySchedule", "Schedule")
+                        .WithMany("GeneratedActivities")
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("DnaCategory");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Schedule");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkActivitySchedule", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Support360.Domain.Entities.WorkDnaCategory", "DnaCategory")
+                        .WithMany()
+                        .HasForeignKey("DnaCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Support360.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("DnaCategory");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkLeave", b =>
+                {
+                    b.HasOne("Support360.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Support360.Domain.Entities.Agent", b =>
@@ -1552,21 +2279,31 @@ namespace Support360.Infrastructure.Persistence.Migrations
                     b.Navigation("Executions");
                 });
 
-            modelBuilder.Entity("Support360.Domain.Entities.ChangeRequest", b =>
-                {
-                    b.Navigation("Approvals");
-                });
-
-            modelBuilder.Entity("Support360.Domain.Entities.Incident", b =>
-                {
-                    b.Navigation("Alerts");
-
-                    b.Navigation("ChangeRequests");
-                });
-
             modelBuilder.Entity("Support360.Domain.Entities.Tenant", b =>
                 {
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.Ticket", b =>
+                {
+                    b.Navigation("Activities");
+
+                    b.Navigation("Alerts");
+
+                    b.Navigation("Approvals");
+
+                    b.Navigation("Attachments");
+
+                    b.Navigation("Comments");
+
+                    b.Navigation("Watchers");
+
+                    b.Navigation("Worklogs");
+                });
+
+            modelBuilder.Entity("Support360.Domain.Entities.WorkActivitySchedule", b =>
+                {
+                    b.Navigation("GeneratedActivities");
                 });
 #pragma warning restore 612, 618
         }

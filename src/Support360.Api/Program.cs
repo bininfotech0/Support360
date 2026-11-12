@@ -47,6 +47,9 @@ else
     }
 }
 
+var seedOptions = configuration.GetSection(SeedOptions.SectionName).Get<SeedOptions>() ?? new SeedOptions();
+SeedPolicy.EnsureAllowed(seedOptions, builder.Environment.IsDevelopment());
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -205,6 +208,7 @@ if (configuration.GetValue("ReverseProxy:Enabled", false))
     app.UseForwardedHeaders();
 }
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<ApiExceptionMiddleware>();
 
 if (configuration.GetValue("Http:UseHttpsRedirection", false))

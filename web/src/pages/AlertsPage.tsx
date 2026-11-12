@@ -5,6 +5,7 @@ import { useAuth } from '../auth/authContext'
 import {
   EmptyState,
   ErrorBanner,
+  LiveStatus,
   Loading,
   PageHeader,
   PageSection,
@@ -89,10 +90,7 @@ export function AlertsPage() {
         description="Threshold breaches evaluated by the background alert worker."
         actions={
           <>
-            <span className={`live-status ${connected ? 'is-live' : ''}`}>
-              <span className="live-dot" aria-hidden="true" />
-              {connected ? 'Live' : 'Reconnecting'}
-            </span>
+            <LiveStatus connected={connected} />
             {canManage(user) ? (
               <button type="button" className="button button-primary" onClick={() => setShowRuleForm((value) => !value)}>
                 {showRuleForm ? 'Close rule form' : 'New rule'}

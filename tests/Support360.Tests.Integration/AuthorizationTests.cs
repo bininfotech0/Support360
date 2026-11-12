@@ -92,26 +92,26 @@ public sealed class AuthorizationTests : IClassFixture<Support360ApiFactory>
         Assert.Equal(HttpStatusCode.Forbidden, (await operatorClient.DeleteAsync($"/api/application-checks/{operatorCheck!.Id}")).StatusCode);
         Assert.Equal(HttpStatusCode.NoContent, (await admin.DeleteAsync($"/api/application-checks/{operatorCheck.Id}")).StatusCode);
 
-        var incidentRequest = new CreateIncidentRequest($"Incident {suffix}", "Authorization matrix coverage.", "High", null, null);
-        Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsJsonAsync("/api/incidents", incidentRequest)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await approver.PostAsJsonAsync("/api/incidents", incidentRequest)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await operatorClient.PostAsJsonAsync("/api/incidents", incidentRequest)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await admin.PostAsJsonAsync("/api/incidents", incidentRequest)).StatusCode);
+        var incidentRequest = new CreateTicketRequest("Incident", $"Incident {suffix}", "Authorization matrix coverage.", null, null, "High", "High", null, null, null, null, null, null, null, null);
+        Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsJsonAsync("/api/tickets", incidentRequest)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await approver.PostAsJsonAsync("/api/tickets", incidentRequest)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await operatorClient.PostAsJsonAsync("/api/tickets", incidentRequest)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await admin.PostAsJsonAsync("/api/tickets", incidentRequest)).StatusCode);
 
         var now = DateTimeOffset.UtcNow;
-        var changeRequest = new CreateChangeRequest(
-            $"Change {suffix}", "Authorization matrix coverage.", "Low", "production", now.AddHours(1), now.AddHours(2), null);
-        Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsJsonAsync("/api/change-requests", changeRequest)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await approver.PostAsJsonAsync("/api/change-requests", changeRequest)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await operatorClient.PostAsJsonAsync("/api/change-requests", changeRequest)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created, (await admin.PostAsJsonAsync("/api/change-requests", changeRequest)).StatusCode);
+        var changeRequest = new CreateTicketRequest(
+            "Change", $"Change {suffix}", "Authorization matrix coverage.", null, null, null, null, null, null, null, "Low risk.", "production", now.AddHours(1), now.AddHours(2), null);
+        Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsJsonAsync("/api/tickets", changeRequest)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await approver.PostAsJsonAsync("/api/tickets", changeRequest)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await operatorClient.PostAsJsonAsync("/api/tickets", changeRequest)).StatusCode);
+        Assert.Equal(HttpStatusCode.Created, (await admin.PostAsJsonAsync("/api/tickets", changeRequest)).StatusCode);
 
         var missingChangeId = Guid.NewGuid();
-        var decision = new DecideChangeRequest("Approved", null);
-        Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsJsonAsync($"/api/change-requests/{missingChangeId}/decision", decision)).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await operatorClient.PostAsJsonAsync($"/api/change-requests/{missingChangeId}/decision", decision)).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await approver.PostAsJsonAsync($"/api/change-requests/{missingChangeId}/decision", decision)).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsJsonAsync($"/api/change-requests/{missingChangeId}/decision", decision)).StatusCode);
+        var decision = new DecideTicketRequest("Approved", null);
+        Assert.Equal(HttpStatusCode.Forbidden, (await viewer.PostAsJsonAsync($"/api/tickets/{missingChangeId}/decision", decision)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await operatorClient.PostAsJsonAsync($"/api/tickets/{missingChangeId}/decision", decision)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await approver.PostAsJsonAsync($"/api/tickets/{missingChangeId}/decision", decision)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await admin.PostAsJsonAsync($"/api/tickets/{missingChangeId}/decision", decision)).StatusCode);
 
         var policy = new UpdateChangeApprovalPolicyRequest(2, true);
         Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync("/api/change-management/policy", policy)).StatusCode);
@@ -151,9 +151,9 @@ public sealed class AuthorizationTests : IClassFixture<Support360ApiFactory>
         var checks = await tenantB.GetFromJsonAsync<List<ApplicationCheckDto>>("/api/application-checks");
         Assert.NotNull(checks);
         Assert.Empty(checks!);
-        var incidents = await tenantB.GetFromJsonAsync<List<IncidentDto>>("/api/incidents");
-        Assert.NotNull(incidents);
-        Assert.Empty(incidents!);
+        var tickets = await tenantB.GetFromJsonAsync<List<TicketDto>>("/api/tickets");
+        Assert.NotNull(tickets);
+        Assert.Empty(tickets!);
 
         using var agentClient = _factory.CreateClient();
         agentClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", agent.ApiKey);

@@ -8,8 +8,19 @@ export function LoginPage() {
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const changeEmail = (value: string) => {
+    setEmail(value)
+    if (error) setError(null)
+  }
+
+  const changePassword = (value: string) => {
+    setPassword(value)
+    if (error) setError(null)
+  }
 
   if (session) {
     const target = (location.state as { from?: string } | null)?.from ?? '/'
@@ -35,7 +46,7 @@ export function LoginPage() {
     <div className="login-page">
       <div className="login-brand">
         <span className="brand-mark large" aria-hidden="true">
-          S3
+          S360
         </span>
         <p className="eyebrow">Support360</p>
         <h1>Operate every endpoint from one secure console.</h1>
@@ -58,32 +69,52 @@ export function LoginPage() {
           </div>
 
           {error ? (
-            <div className="error-banner" role="alert">
+            <div className="error-banner" id="login-error" role="alert">
               {error}
             </div>
           ) : null}
 
-          <label>
-            Email
+          <div className="field">
+            <label htmlFor="login-email">Email</label>
             <input
+              id="login-email"
               type="email"
+              inputMode="email"
               autoComplete="username"
+              autoCapitalize="none"
+              spellCheck={false}
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => changeEmail(event.target.value)}
+              aria-invalid={error ? 'true' : undefined}
+              aria-describedby={error ? 'login-error' : undefined}
               required
             />
-          </label>
+          </div>
 
-          <label>
-            Password
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
+          <div className="field">
+            <label htmlFor="login-password">Password</label>
+            <div className="password-field">
+              <input
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => changePassword(event.target.value)}
+                aria-invalid={error ? 'true' : undefined}
+                aria-describedby={error ? 'login-error' : undefined}
+                required
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
 
           <button type="submit" className="button button-primary" disabled={submitting}>
             {submitting ? 'Signing in…' : 'Sign in'}
@@ -93,7 +124,7 @@ export function LoginPage() {
             <div className="dev-hint">
               <strong>Local demo seed</strong>
               <span>admin@support360.local</span>
-              <span>DevOnly-ChangeMe-123!</span>
+              <small>Use SEED_ADMIN_PASSWORD from your local .env file.</small>
               <small>Available only when the Development seed is enabled.</small>
             </div>
           ) : null}
